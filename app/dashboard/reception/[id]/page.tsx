@@ -174,9 +174,9 @@ export default async function ReceptionDetailPage({
                 <TableRow key={detail.id}>
                   <TableCell>{detail.line_number}</TableCell>
                   <TableCell className="font-medium">
-                    {detail.fruit_type.type}
+                    {detail.fruit_type?.type || "N/A"}
                   </TableCell>
-                  <TableCell>{detail.fruit_type.subtype}</TableCell>
+                  <TableCell>{detail.fruit_type?.subtype || "N/A"}</TableCell>
                   <TableCell className="text-right">
                     {detail.quantity}
                   </TableCell>

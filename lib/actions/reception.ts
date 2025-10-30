@@ -205,7 +205,12 @@ export async function getReceptionDetails(receptionId: string) {
 
   const { data: details, error: detailsError } = await supabase
     .from("reception_details")
-    .select("*")
+    .select(
+      `
+      *,
+      fruit_type:fruit_types(id, type, subtype)
+    `,
+    )
     .eq("reception_id", receptionId)
     .order("line_number");
 
