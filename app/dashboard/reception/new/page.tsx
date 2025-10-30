@@ -1,3 +1,5 @@
+"use client";
+
 import { getProviders, getDrivers, getFruitTypes } from "@/lib/actions/reception"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ReceptionForm } from "@/components/reception-form"

@@ -1,3 +1,5 @@
+"use client";
+
 import { getReceptionDetails, getProviders, getDrivers, getFruitTypes } from "@/lib/actions/reception";
 import {
   Card,
