@@ -11,6 +11,35 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ReceptionForm } from "@/components/reception-form";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
+
+// Client component wrapper to handle layout changes
+function ReceptionFormWrapper({
+  providers,
+  drivers,
+  fruitTypes,
+  reception,
+  details,
+}: {
+  providers: any[];
+  drivers: any[];
+  fruitTypes: any[];
+  reception: any;
+  details: any[];
+}) {
+  const { effectiveLayout } = useUserPreferences();
+  // Force re-render when layout changes by using layout as key
+  return (
+    <ReceptionForm
+      key={`${effectiveLayout}-${reception?.id || 'new'}`}
+      providers={providers}
+      drivers={drivers}
+      fruitTypes={fruitTypes}
+      reception={reception}
+      details={details}
+    />
+  );
+}
 
 export default async function EditReceptionPage({
   params,
@@ -123,7 +152,7 @@ export default async function EditReceptionPage({
           <CardDescription>Modifique los campos necesarios</CardDescription>
         </CardHeader>
         <CardContent>
-          <ReceptionForm
+          <ReceptionFormWrapper
             providers={providersResult.providers || []}
             drivers={driversResult.drivers || []}
             fruitTypes={fruitTypesResult.fruitTypes || []}
@@ -133,7 +162,7 @@ export default async function EditReceptionPage({
               fruit_type_id: d.fruit_type_id,
               quantity: d.quantity,
               weight_kg: d.weight_kg,
-            }))}
+            })) || []}
           />
         </CardContent>
       </Card>

@@ -14,6 +14,7 @@ export function useUserPreferences() {
   const [preferences, setPreferences] = useState<UserPreferences>({
     layoutMode: "auto",
   });
+  const [version, setVersion] = useState(0);
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -35,23 +36,39 @@ export function useUserPreferences() {
         try {
           const parsed = JSON.parse(e.newValue);
           setPreferences(parsed);
+          setVersion(v => v + 1);
         } catch (error) {
           console.error("Error parsing stored preferences:", error);
         }
       }
     };
 
+    const handlePreferencesChange = (e: CustomEvent) => {
+      setPreferences(e.detail);
+      setVersion(v => v + 1);
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('preferencesChanged', handlePreferencesChange as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('preferencesChanged', handlePreferencesChange as EventListener);
+    };
   }, []);
 
   // Save preferences to localStorage
   const updateLayoutMode = (mode: LayoutMode) => {
     const newPreferences = { ...preferences, layoutMode: mode };
     setPreferences(newPreferences);
+    setVersion(v => v + 1);
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newPreferences));
+      // Dispatch a custom event to notify other components in the same tab
+      window.dispatchEvent(new CustomEvent('preferencesChanged', {
+        detail: newPreferences
+      }));
     } catch (error) {
       console.error("Error saving user preferences:", error);
     }

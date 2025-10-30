@@ -1,6 +1,29 @@
 import { getProviders, getDrivers, getFruitTypes } from "@/lib/actions/reception"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ReceptionForm } from "@/components/reception-form"
+import { useUserPreferences } from "@/hooks/use-user-preferences"
+
+// Client component wrapper to handle layout changes
+function ReceptionFormWrapper({
+  providers,
+  drivers,
+  fruitTypes,
+}: {
+  providers: any[];
+  drivers: any[];
+  fruitTypes: any[];
+}) {
+  const { effectiveLayout } = useUserPreferences();
+  // Force re-render when layout changes by using layout as key
+  return (
+    <ReceptionForm
+      key={`${effectiveLayout}-new`}
+      providers={providers}
+      drivers={drivers}
+      fruitTypes={fruitTypes}
+    />
+  );
+}
 
 export default async function NewReceptionPage() {
   const [providersResult, driversResult, fruitTypesResult] = await Promise.all([
@@ -74,7 +97,7 @@ export default async function NewReceptionPage() {
           <CardDescription>Complete todos los campos requeridos</CardDescription>
         </CardHeader>
         <CardContent>
-          <ReceptionForm
+          <ReceptionFormWrapper
             providers={providersResult.providers || []}
             drivers={driversResult.drivers || []}
             fruitTypes={fruitTypesResult.fruitTypes || []}
