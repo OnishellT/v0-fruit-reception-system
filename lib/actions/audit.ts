@@ -1,6 +1,6 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/server"
 import { getSession } from "@/lib/actions/auth"
 
 export async function getAuditLogs(filters?: { user_id?: string; action?: string; limit?: number }) {
@@ -10,16 +10,11 @@ export async function getAuditLogs(filters?: { user_id?: string; action?: string
     return { error: "No autorizado" }
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
 
   let query = supabase
     .from("audit_logs")
-    .select(
-      `
-      *,
-      user:users(username, full_name)
-    `,
-    )
+    .select("*")
     .order("created_at", { ascending: false })
 
   if (filters?.user_id) {
@@ -48,7 +43,7 @@ export async function getAuditStats() {
     return { error: "No autorizado" }
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
 
   // Get total logs count
   const { count: totalLogs } = await supabase.from("audit_logs").select("*", { count: "exact", head: true })

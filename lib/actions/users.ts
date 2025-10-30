@@ -1,6 +1,6 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/server"
 import { getSession } from "@/lib/actions/auth"
 import { hashPassword } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
@@ -12,7 +12,7 @@ export async function getUsers() {
     return { error: "No autorizado" }
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
 
   const { data: users, error } = await supabase
     .from("users")
@@ -38,7 +38,7 @@ export async function createUser(formData: {
     return { error: "No autorizado" }
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
 
   // Check if username already exists
   const { data: existingUser } = await supabase.from("users").select("id").eq("username", formData.username).single()
@@ -88,7 +88,7 @@ export async function updateUser(userId: string, formData: { full_name: string; 
     return { error: "No autorizado" }
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
 
   // Get old values for audit
   const { data: oldUser } = await supabase.from("users").select("full_name, role").eq("id", userId).single()
@@ -121,7 +121,7 @@ export async function toggleUserStatus(userId: string, isActive: boolean) {
     return { error: "No autorizado" }
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
 
   const { error } = await supabase.from("users").update({ is_active: isActive }).eq("id", userId)
 

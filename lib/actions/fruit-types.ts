@@ -1,11 +1,11 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { getSession } from "./auth"
 
 export async function getFruitTypes() {
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
   const { data, error } = await supabase
     .from("fruit_types")
     .select("*")
@@ -17,7 +17,7 @@ export async function getFruitTypes() {
 }
 
 export async function getFruitType(id: string) {
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
   const { data, error } = await supabase.from("fruit_types").select("*").eq("id", id).single()
 
   if (error) throw error
@@ -31,7 +31,7 @@ export async function createFruitType(formData: FormData) {
   const type = formData.get("type") as string
   const subtype = formData.get("subtype") as string
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
   const { error } = await supabase.from("fruit_types").insert({
     type,
     subtype,
@@ -50,7 +50,7 @@ export async function updateFruitType(id: string, formData: FormData) {
   const type = formData.get("type") as string
   const subtype = formData.get("subtype") as string
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
   const { error } = await supabase.from("fruit_types").update({ type, subtype }).eq("id", id)
 
   if (error) throw error
@@ -63,7 +63,7 @@ export async function deleteFruitType(id: string) {
   const session = await getSession()
   if (!session || session.role !== "admin") throw new Error("No autorizado")
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
   const { error } = await supabase.from("fruit_types").delete().eq("id", id)
 
   if (error) throw error

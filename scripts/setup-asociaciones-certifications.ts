@@ -1,13 +1,13 @@
-import { neon } from "@neondatabase/serverless"
+import { neon } from "@neondatabase/serverless";
 
-const sql = neon(process.env.NEON_NEON_DATABASE_URL!)
+const sql = neon(process.env.NEON_DATABASE_URL!);
 
 async function setupAsociacionesAndCertifications() {
-  console.log("[v0] Starting setup of asociaciones and certifications...")
+  console.log("[v0] Starting setup of asociaciones and certifications...");
 
   try {
     // Create asociaciones table
-    console.log("[v0] Creating asociaciones table...")
+    console.log("[v0] Creating asociaciones table...");
     await sql`
       CREATE TABLE IF NOT EXISTS asociaciones (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,11 +21,11 @@ async function setupAsociacionesAndCertifications() {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
-    `
-    console.log("[v0] ✓ Asociaciones table created")
+    `;
+    console.log("[v0] ✓ Asociaciones table created");
 
     // Create certifications table
-    console.log("[v0] Creating certifications table...")
+    console.log("[v0] Creating certifications table...");
     await sql`
       CREATE TABLE IF NOT EXISTS certifications (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -33,11 +33,11 @@ async function setupAsociacionesAndCertifications() {
         description TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
-    `
-    console.log("[v0] ✓ Certifications table created")
+    `;
+    console.log("[v0] ✓ Certifications table created");
 
     // Create provider_certifications junction table
-    console.log("[v0] Creating provider_certifications table...")
+    console.log("[v0] Creating provider_certifications table...");
     await sql`
       CREATE TABLE IF NOT EXISTS provider_certifications (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -49,26 +49,26 @@ async function setupAsociacionesAndCertifications() {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(provider_id, certification_id)
       )
-    `
-    console.log("[v0] ✓ Provider certifications table created")
+    `;
+    console.log("[v0] ✓ Provider certifications table created");
 
     // Add asociacion_id to providers table if it doesn't exist
-    console.log("[v0] Adding asociacion_id column to providers...")
+    console.log("[v0] Adding asociacion_id column to providers...");
     await sql`
-      DO $$ 
+      DO $$
       BEGIN
         IF NOT EXISTS (
-          SELECT 1 FROM information_schema.columns 
+          SELECT 1 FROM information_schema.columns
           WHERE table_name = 'providers' AND column_name = 'asociacion_id'
         ) THEN
           ALTER TABLE providers ADD COLUMN asociacion_id UUID REFERENCES asociaciones(id) ON DELETE SET NULL;
         END IF;
       END $$;
-    `
-    console.log("[v0] ✓ Asociacion_id column added to providers")
+    `;
+    console.log("[v0] ✓ Asociacion_id column added to providers");
 
     // Insert default certifications
-    console.log("[v0] Inserting default certifications...")
+    console.log("[v0] Inserting default certifications...");
     await sql`
       INSERT INTO certifications (name, description) VALUES
         ('Fairtrade', 'Certificación de comercio justo que garantiza condiciones laborales dignas'),
@@ -77,45 +77,45 @@ async function setupAsociacionesAndCertifications() {
         ('UTZ', 'Certificación de agricultura sostenible'),
         ('Bird Friendly', 'Certificación de café cultivado bajo sombra')
       ON CONFLICT (name) DO NOTHING
-    `
-    console.log("[v0] ✓ Default certifications inserted")
+    `;
+    console.log("[v0] ✓ Default certifications inserted");
 
     // Enable RLS
-    console.log("[v0] Enabling Row Level Security...")
-    await sql`ALTER TABLE asociaciones ENABLE ROW LEVEL SECURITY`
-    await sql`ALTER TABLE certifications ENABLE ROW LEVEL SECURITY`
-    await sql`ALTER TABLE provider_certifications ENABLE ROW LEVEL SECURITY`
-    console.log("[v0] ✓ RLS enabled")
+    console.log("[v0] Enabling Row Level Security...");
+    await sql`ALTER TABLE asociaciones ENABLE ROW LEVEL SECURITY`;
+    await sql`ALTER TABLE certifications ENABLE ROW LEVEL SECURITY`;
+    await sql`ALTER TABLE provider_certifications ENABLE ROW LEVEL SECURITY`;
+    console.log("[v0] ✓ RLS enabled");
 
     // Create RLS policies
-    console.log("[v0] Creating RLS policies...")
+    console.log("[v0] Creating RLS policies...");
 
     // Asociaciones policies
     await sql`
       DROP POLICY IF EXISTS "Allow all operations on asociaciones" ON asociaciones;
       CREATE POLICY "Allow all operations on asociaciones" ON asociaciones FOR ALL USING (true) WITH CHECK (true);
-    `
+    `;
 
     // Certifications policies
     await sql`
       DROP POLICY IF EXISTS "Allow all operations on certifications" ON certifications;
       CREATE POLICY "Allow all operations on certifications" ON certifications FOR ALL USING (true) WITH CHECK (true);
-    `
+    `;
 
     // Provider certifications policies
     await sql`
       DROP POLICY IF EXISTS "Allow all operations on provider_certifications" ON provider_certifications;
       CREATE POLICY "Allow all operations on provider_certifications" ON provider_certifications FOR ALL USING (true) WITH CHECK (true);
-    `
+    `;
 
-    console.log("[v0] ✓ RLS policies created")
+    console.log("[v0] ✓ RLS policies created");
 
-    console.log("[v0] ✅ Setup completed successfully!")
-    console.log("[v0] You can now use the Proveedores and Asociaciones pages.")
+    console.log("[v0] ✅ Setup completed successfully!");
+    console.log("[v0] You can now use the Proveedores and Asociaciones pages.");
   } catch (error) {
-    console.error("[v0] ❌ Error during setup:", error)
-    throw error
+    console.error("[v0] ❌ Error during setup:", error);
+    throw error;
   }
 }
 
-setupAsociacionesAndCertifications()
+setupAsociacionesAndCertifications();

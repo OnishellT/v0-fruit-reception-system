@@ -1,42 +1,54 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createProvider } from "@/lib/actions/providers"
-import { ArrowLeft } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { createProvider } from "@/lib/actions/providers";
+import { ArrowLeft } from "lucide-react";
 
 interface Asociacion {
-  id: string
-  code: string
-  name: string
+  id: string;
+  code: string;
+  name: string;
 }
 
-export function CreateProviderForm({ asociaciones }: { asociaciones: Asociacion[] }) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
+export function CreateProviderForm({
+  asociaciones,
+}: {
+  asociaciones: Asociacion[];
+}) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
     try {
-      const formData = new FormData(e.currentTarget)
-      await createProvider(formData)
-      router.push("/dashboard/proveedores")
-      router.refresh()
-    } catch (error) {
-      alert("Error al crear proveedor")
+      const formData = new FormData(e.currentTarget);
+      await createProvider(formData);
+      router.push("/dashboard/proveedores");
+      router.refresh();
+    } catch (error: any) {
+      setError(error.message || "Error al crear proveedor");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Card>
@@ -44,6 +56,11 @@ export function CreateProviderForm({ asociaciones }: { asociaciones: Asociacion[
         <CardTitle>Información del Proveedor</CardTitle>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-md mb-4">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -92,7 +109,11 @@ export function CreateProviderForm({ asociaciones }: { asociaciones: Asociacion[
           </div>
 
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Cancelar
             </Button>
@@ -103,5 +124,5 @@ export function CreateProviderForm({ asociaciones }: { asociaciones: Asociacion[
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

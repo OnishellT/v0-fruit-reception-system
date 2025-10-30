@@ -21,9 +21,11 @@ interface Driver {
 export function EditDriverForm({ driver }: { driver: Driver }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setError(null)
     setLoading(true)
 
     try {
@@ -31,8 +33,8 @@ export function EditDriverForm({ driver }: { driver: Driver }) {
       await updateDriver(driver.id, formData)
       router.push("/dashboard/choferes")
       router.refresh()
-    } catch (error) {
-      alert("Error al actualizar chofer")
+    } catch (error: any) {
+      setError(error.message || "Error desconocido")
     } finally {
       setLoading(false)
     }
@@ -44,6 +46,11 @@ export function EditDriverForm({ driver }: { driver: Driver }) {
         <CardTitle>Información del Chofer</CardTitle>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-md mb-4">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2 col-span-2">

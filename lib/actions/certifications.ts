@@ -16,7 +16,7 @@ export async function getProviderCertifications(providerId: string) {
   const supabase = await createServiceRoleClient()
   const { data, error } = await supabase
     .from("provider_certifications")
-    .select("*, certification:certifications(*)")
+    .select("*")
     .eq("provider_id", providerId)
 
   if (error) throw error

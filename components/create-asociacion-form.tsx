@@ -1,36 +1,44 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { createAsociacion } from "@/lib/actions/asociaciones"
-import { ArrowLeft } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createAsociacion } from "@/lib/actions/asociaciones";
+import { ArrowLeft } from "lucide-react";
 
 export function CreateAsociacionForm() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
     try {
-      const formData = new FormData(e.currentTarget)
-      await createAsociacion(formData)
-      router.push("/dashboard/asociaciones")
-      router.refresh()
-    } catch (error) {
-      alert("Error al crear asociación")
+      const formData = new FormData(e.currentTarget);
+      const result = await createAsociacion(formData);
+
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      router.push("/dashboard/asociaciones");
+      router.refresh();
+    } catch (error: any) {
+      setError(error.message || "Error desconocido");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Card>
@@ -38,6 +46,11 @@ export function CreateAsociacionForm() {
         <CardTitle>Información de la Asociación</CardTitle>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-md mb-4">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -57,7 +70,11 @@ export function CreateAsociacionForm() {
           </div>
 
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Cancelar
             </Button>
@@ -68,5 +85,5 @@ export function CreateAsociacionForm() {
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,120 +1,147 @@
-"use server"
+"use server";
 
-import { createServiceRoleClient } from "@/lib/supabase/server"
-import { getSession } from "@/lib/actions/auth"
-import { revalidatePath } from "next/cache"
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/actions/auth";
+import { revalidatePath } from "next/cache";
 
 export async function getProviders() {
-  const supabase = await createServiceRoleClient()
+  const supabase = await createServiceRoleClient();
 
-  const { data: providers, error } = await supabase.from("providers").select("*").eq("is_active", true).order("name")
+  const { data: providers, error } = await supabase
+    .from("providers")
+    .select("*")
+    .eq("is_active", true)
+    .order("name");
 
   if (error) {
-    return { error: "Error al obtener proveedores" }
+    return { error: "Error al obtener proveedores" };
   }
 
-  return { providers }
+  return { providers };
 }
 
 export async function getDrivers() {
-  const supabase = await createServiceRoleClient()
+  const supabase = await createServiceRoleClient();
 
-  const { data: drivers, error } = await supabase.from("drivers").select("*").eq("is_active", true).order("name")
+  const { data: drivers, error } = await supabase
+    .from("drivers")
+    .select("*")
+    .eq("is_active", true)
+    .order("name");
 
   if (error) {
-    return { error: "Error al obtener choferes" }
+    return { error: "Error al obtener choferes" };
   }
 
-  return { drivers }
+  return { drivers };
 }
 
 export async function getFruitTypes() {
-  const supabase = await createServiceRoleClient()
+  const supabase = await createServiceRoleClient();
 
   const { data: fruitTypes, error } = await supabase
     .from("fruit_types")
     .select("*")
     .eq("is_active", true)
-    .order("type, subtype")
+    .order("type, subtype");
 
   if (error) {
-    return { error: "Error al obtener tipos de frutos" }
+    return { error: "Error al obtener tipos de frutos" };
   }
 
-  return { fruitTypes }
+  return { fruitTypes };
 }
 
 export async function createReception(data: {
-  provider_id: string
-  driver_id: string
-  fruit_type_id: string
-  total_containers: number
-  notes?: string
+  provider_id: string;
+  driver_id: string;
+  fruit_type_id: string;
+  truck_plate: string;
+  total_containers: number;
+  notes?: string;
   details: Array<{
-    quantity: number
-    weight_kg: number
-  }>
+    quantity: number;
+    weight_kg: number;
+  }>;
 }) {
-  const session = await getSession()
+  console.log("Creating reception with data:", data);
+  const session = await getSession();
 
   if (!session) {
-    return { error: "No autorizado" }
+    console.log("No session found");
+    return { error: "No autorizado" };
   }
 
-  const supabase = await createServiceRoleClient()
+  console.log("Session:", session);
+
+  const supabase = await createServiceRoleClient();
+
+  // Convert empty strings to null for UUID fields
+  const providerId = data.provider_id || null;
+  const driverId = data.driver_id || null;
+  const fruitTypeId = data.fruit_type_id || null;
 
   // Generate reception number
-  const today = new Date()
-  const dateStr = today.toISOString().split("T")[0].replace(/-/g, "")
+  const today = new Date();
+  const dateStr = today.toISOString().split("T")[0].replace(/-/g, "");
   const { data: lastReception } = await supabase
     .from("receptions")
     .select("reception_number")
     .like("reception_number", `REC-${dateStr}%`)
     .order("reception_number", { ascending: false })
     .limit(1)
-    .single()
+    .single();
 
-  let sequence = 1
+  let sequence = 1;
   if (lastReception) {
-    const lastSeq = Number.parseInt(lastReception.reception_number.split("-")[2])
-    sequence = lastSeq + 1
+    const lastSeq = Number.parseInt(
+      lastReception.reception_number.split("-")[2],
+    );
+    sequence = lastSeq + 1;
   }
 
-  const reception_number = `REC-${dateStr}-${sequence.toString().padStart(4, "0")}`
+  const reception_number = `REC-${dateStr}-${sequence.toString().padStart(4, "0")}`;
 
   const { data: reception, error: receptionError } = await supabase
     .from("receptions")
     .insert({
       reception_number,
-      provider_id: data.provider_id,
-      driver_id: data.driver_id,
-      fruit_type_id: data.fruit_type_id,
+      provider_id: providerId,
+      driver_id: driverId,
+      fruit_type_id: fruitTypeId,
+      truck_plate: data.truck_plate,
       total_containers: data.total_containers,
       notes: data.notes,
       status: "completed",
       created_by: session.id,
     })
     .select()
-    .single()
+    .single();
 
   if (receptionError) {
-    return { error: "Error al crear recepción" }
+    console.error("Reception creation error:", receptionError);
+    return { error: `Error al crear recepción: ${receptionError.message}` };
   }
 
   const details = data.details.map((detail, index) => ({
     reception_id: reception.id,
-    fruit_type_id: data.fruit_type_id,
+    fruit_type_id: fruitTypeId,
     quantity: detail.quantity,
     weight_kg: detail.weight_kg,
     line_number: index + 1,
-  }))
+  }));
 
-  const { error: detailsError } = await supabase.from("reception_details").insert(details)
+  const { error: detailsError } = await supabase
+    .from("reception_details")
+    .insert(details);
 
   if (detailsError) {
+    console.error("Reception details error:", detailsError);
     // Rollback reception if details fail
-    await supabase.from("receptions").delete().eq("id", reception.id)
-    return { error: "Error al crear detalles de recepción" }
+    await supabase.from("receptions").delete().eq("id", reception.id);
+    return {
+      error: `Error al crear detalles de recepción: ${detailsError.message}`,
+    };
   }
 
   // Log the action
@@ -124,87 +151,85 @@ export async function createReception(data: {
     table_name: "receptions",
     record_id: reception.id,
     new_values: { reception_number, provider_id: data.provider_id },
-  })
+  });
 
-  revalidatePath("/dashboard/reception")
-  return { success: true, reception_number }
+  revalidatePath("/dashboard/reception");
+  return { success: true, reception_number };
 }
 
 export async function getReceptions() {
-  const supabase = await createServiceRoleClient()
+  const supabase = await createServiceRoleClient();
 
   const { data: receptions, error } = await supabase
     .from("receptions")
     .select(
       `
       *,
-      provider:providers(name, code),
-      driver:drivers(name),
-      created_by_user:users!receptions_created_by_fkey(username)
+      provider:providers(id, code, name),
+      driver:drivers(id, name),
+      fruit_type:fruit_types(id, type, subtype),
+      created_by_user:users(id, username)
     `,
     )
     .order("created_at", { ascending: false })
-    .limit(50)
+    .limit(50);
 
   if (error) {
-    return { error: "Error al obtener recepciones" }
+    console.error("Error fetching receptions:", error);
+    return { error: "Error al obtener recepciones" };
   }
 
-  return { receptions }
+  return { receptions };
 }
 
 export async function getReceptionDetails(receptionId: string) {
-  const supabase = await createServiceRoleClient()
+  const supabase = await createServiceRoleClient();
 
   const { data: reception, error: receptionError } = await supabase
     .from("receptions")
     .select(
       `
       *,
-      provider:providers(*),
-      driver:drivers(*),
-      created_by_user:users!receptions_created_by_fkey(username, full_name)
+      provider:providers(id, code, name),
+      driver:drivers(id, name),
+      fruit_type:fruit_types(id, type, subtype),
+      created_by_user:users(id, username)
     `,
     )
     .eq("id", receptionId)
-    .single()
+    .single();
 
   if (receptionError) {
-    return { error: "Error al obtener recepción" }
+    return { error: "Error al obtener recepción" };
   }
 
   const { data: details, error: detailsError } = await supabase
     .from("reception_details")
-    .select(
-      `
-      *,
-      fruit_type:fruit_types(*)
-    `,
-    )
+    .select("*")
     .eq("reception_id", receptionId)
-    .order("line_number")
+    .order("line_number");
 
   if (detailsError) {
-    return { error: "Error al obtener detalles" }
+    return { error: "Error al obtener detalles" };
   }
 
-  return { reception, details }
+  return { reception, details };
 }
 
 export async function createProvider(data: {
-  code: string
-  name: string
-  contact_person?: string
-  phone?: string
-  address?: string
+  code: string;
+  name: string;
+  contact_person?: string;
+  phone?: string;
+  address?: string;
 }) {
-  const session = await getSession()
+  const session = await getSession();
 
   if (!session) {
-    return { error: "No autorizado" }
+    return { error: "No autorizado" };
   }
 
-  const supabase = await createServiceRoleClient()
+  const supabase = await createServiceRoleClient();
 
   const { data: provider, error } = await supabase
     .from("providers")
@@ -213,27 +238,31 @@ export async function createProvider(data: {
       created_by: session.id,
     })
     .select()
-    .single()
+    .single();
 
   if (error) {
     if (error.code === "23505") {
-      return { error: "El código de proveedor ya existe" }
+      return { error: "El código de proveedor ya existe" };
     }
-    return { error: "Error al crear proveedor" }
+    return { error: "Error al crear proveedor" };
   }
 
-  revalidatePath("/dashboard/reception")
-  return { success: true, provider }
+  revalidatePath("/dashboard/reception");
+  return { success: true, provider };
 }
 
-export async function createDriver(data: { name: string; license_number?: string; phone?: string }) {
-  const session = await getSession()
+export async function createDriver(data: {
+  name: string;
+  license_number?: string;
+  phone?: string;
+}) {
+  const session = await getSession();
 
   if (!session) {
-    return { error: "No autorizado" }
+    return { error: "No autorizado" };
   }
 
-  const supabase = await createServiceRoleClient()
+  const supabase = await createServiceRoleClient();
 
   const { data: driver, error } = await supabase
     .from("drivers")
@@ -242,12 +271,12 @@ export async function createDriver(data: { name: string; license_number?: string
       created_by: session.id,
     })
     .select()
-    .single()
+    .single();
 
   if (error) {
-    return { error: "Error al crear chofer" }
+    return { error: "Error al crear chofer" };
   }
 
-  revalidatePath("/dashboard/reception")
-  return { success: true, driver }
+  revalidatePath("/dashboard/reception");
+  return { success: true, driver };
 }

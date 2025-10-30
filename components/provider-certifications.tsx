@@ -1,31 +1,46 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Plus, X } from "lucide-react"
-import { addProviderCertification, removeProviderCertification } from "@/lib/actions/certifications"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, X } from "lucide-react";
+import {
+  addProviderCertification,
+  removeProviderCertification,
+} from "@/lib/actions/certifications";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Certification {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 interface ProviderCertification {
-  certification_id: string
-  issued_date: string | null
-  expiry_date: string | null
-  notes: string | null
-  certification: Certification
+  certification_id: string;
+  issued_date: string | null;
+  expiry_date: string | null;
+  notes: string | null;
 }
 
 export function ProviderCertifications({
@@ -33,40 +48,38 @@ export function ProviderCertifications({
   certifications,
   allCertifications,
 }: {
-  providerId: string
-  certifications: ProviderCertification[]
-  allCertifications: Certification[]
+  providerId: string;
+  certifications: ProviderCertification[];
+  allCertifications: Certification[];
 }) {
-  const router = useRouter()
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      const formData = new FormData(e.currentTarget)
-      await addProviderCertification(providerId, formData)
-      setOpen(false)
-      router.refresh()
+      const formData = new FormData(e.currentTarget);
+      await addProviderCertification(providerId, formData);
+      setOpen(false);
+      router.refresh();
     } catch (error) {
-      alert("Error al agregar certificación")
+      alert("Error al agregar certificación");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleRemove = async (certificationId: string) => {
-    if (!confirm("¿Está seguro de eliminar esta certificación?")) return
-
     try {
-      await removeProviderCertification(providerId, certificationId)
-      router.refresh()
+      await removeProviderCertification(providerId, certificationId);
+      router.refresh();
     } catch (error) {
-      alert("Error al eliminar certificación")
+      alert("Error al eliminar certificación");
     }
-  }
+  };
 
   return (
     <Card>
@@ -118,7 +131,11 @@ export function ProviderCertifications({
               </div>
 
               <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                >
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={loading}>
@@ -131,35 +148,59 @@ export function ProviderCertifications({
       </CardHeader>
       <CardContent>
         {certifications.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No hay certificaciones registradas</p>
+          <p className="text-muted-foreground text-sm">
+            No hay certificaciones registradas
+          </p>
         ) : (
           <div className="space-y-3">
-            {certifications.map((cert) => (
-              <div
-                key={cert.certification_id}
-                className="flex items-start justify-between p-3 border border-border rounded-lg"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">{cert.certification.name}</Badge>
+            {certifications.map((cert) => {
+              const certification = allCertifications.find(
+                (c) => c.id === cert.certification_id,
+              );
+              const certificationName =
+                certification?.name || "Certificación desconocida";
+
+              return (
+                <div
+                  key={cert.certification_id}
+                  className="flex items-start justify-between p-3 border border-border rounded-lg"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">{certificationName}</Badge>
+                    </div>
+                    {(cert.issued_date || cert.expiry_date) && (
+                      <p className="text-sm text-muted-foreground">
+                        {cert.issued_date &&
+                          `Emitida: ${new Date(cert.issued_date).toLocaleDateString()}`}
+                        {cert.issued_date && cert.expiry_date && " • "}
+                        {cert.expiry_date &&
+                          `Vence: ${new Date(cert.expiry_date).toLocaleDateString()}`}
+                      </p>
+                    )}
+                    {cert.notes && (
+                      <p className="text-sm text-muted-foreground">
+                        {cert.notes}
+                      </p>
+                    )}
                   </div>
-                  {(cert.issued_date || cert.expiry_date) && (
-                    <p className="text-sm text-muted-foreground">
-                      {cert.issued_date && `Emitida: ${new Date(cert.issued_date).toLocaleDateString()}`}
-                      {cert.issued_date && cert.expiry_date && " • "}
-                      {cert.expiry_date && `Vence: ${new Date(cert.expiry_date).toLocaleDateString()}`}
-                    </p>
-                  )}
-                  {cert.notes && <p className="text-sm text-muted-foreground">{cert.notes}</p>}
+                  <ConfirmDialog
+                    title="¿Eliminar certificación?"
+                    description="¿Está seguro de que desea eliminar esta certificación del proveedor? Esta acción no se puede deshacer."
+                    confirmText="Eliminar"
+                    variant="destructive"
+                    onConfirm={() => handleRemove(cert.certification_id)}
+                  >
+                    <Button variant="ghost" size="sm">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </ConfirmDialog>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => handleRemove(cert.certification_id)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

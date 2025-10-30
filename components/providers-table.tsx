@@ -1,46 +1,55 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Pencil, Trash2 } from "lucide-react"
-import { deleteProvider } from "@/lib/actions/providers"
-import { useRouter } from "next/navigation"
+import { useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Pencil, Trash2 } from "lucide-react";
+import { deleteProvider } from "@/lib/actions/providers";
+import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Provider {
-  id: string
-  code: string
-  name: string
-  contact: string | null
-  phone: string | null
-  address: string | null
+  id: string;
+  code: string;
+  name: string;
+  contact: string | null;
+  phone: string | null;
+  address: string | null;
   asociacion?: {
-    code: string
-    name: string
-  } | null
+    code: string;
+    name: string;
+  } | null;
 }
 
 export function ProvidersTable({
   providers,
   showAsociacion = true,
-}: { providers: Provider[]; showAsociacion?: boolean }) {
-  const router = useRouter()
-  const [deleting, setDeleting] = useState<string | null>(null)
+}: {
+  providers: Provider[];
+  showAsociacion?: boolean;
+}) {
+  const router = useRouter();
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Está seguro de eliminar este proveedor?")) return
-
-    setDeleting(id)
+    setDeleting(id);
     try {
-      await deleteProvider(id)
-      router.refresh()
+      await deleteProvider(id);
+      router.refresh();
     } catch (error) {
-      alert("Error al eliminar proveedor")
+      alert("Error al eliminar proveedor");
     } finally {
-      setDeleting(null)
+      setDeleting(null);
     }
-  }
+  };
 
   return (
     <div className="bg-card rounded-lg border border-border">
@@ -76,18 +85,27 @@ export function ProvidersTable({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => router.push(`/dashboard/proveedores/${provider.id}`)}
+                    onClick={() =>
+                      router.push(`/dashboard/proveedores/${provider.id}`)
+                    }
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(provider.id)}
-                    disabled={deleting === provider.id}
+                  <ConfirmDialog
+                    title="¿Eliminar proveedor?"
+                    description="¿Está seguro de que desea eliminar este proveedor? Esta acción no se puede deshacer."
+                    confirmText="Eliminar"
+                    variant="destructive"
+                    onConfirm={() => handleDelete(provider.id)}
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={deleting === provider.id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </ConfirmDialog>
                 </div>
               </TableCell>
             </TableRow>
@@ -95,5 +113,5 @@ export function ProvidersTable({
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

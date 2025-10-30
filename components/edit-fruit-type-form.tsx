@@ -1,41 +1,50 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { updateFruitType } from "@/lib/actions/fruit-types"
-import { ArrowLeft } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { updateFruitType } from "@/lib/actions/fruit-types";
+import { ArrowLeft } from "lucide-react";
 
 interface FruitType {
-  id: string
-  type: string
-  subtype: string
+  id: string;
+  type: string;
+  subtype: string;
 }
 
 export function EditFruitTypeForm({ fruitType }: { fruitType: FruitType }) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
     try {
-      const formData = new FormData(e.currentTarget)
-      await updateFruitType(fruitType.id, formData)
-      router.push("/dashboard/tipos-fruto")
-      router.refresh()
-    } catch (error) {
-      alert("Error al actualizar tipo de fruto")
+      const formData = new FormData(e.currentTarget);
+      await updateFruitType(fruitType.id, formData);
+      router.push("/dashboard/tipos-fruto");
+      router.refresh();
+    } catch (error: any) {
+      setError(error.message || "Error desconocido");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Card>
@@ -43,21 +52,48 @@ export function EditFruitTypeForm({ fruitType }: { fruitType: FruitType }) {
         <CardTitle>Información del Tipo de Fruto</CardTitle>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-md mb-4">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="type">Tipo *</Label>
-              <Input id="type" name="type" defaultValue={fruitType.type} required />
+              <Select name="type" defaultValue={fruitType.type} required>
+                <SelectTrigger id="type">
+                  <SelectValue placeholder="Seleccione un tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CACAO">CACAO</SelectItem>
+                  <SelectItem value="CAFÉ">CAFÉ</SelectItem>
+                  <SelectItem value="MIEL">MIEL</SelectItem>
+                  <SelectItem value="COCOS">COCOS</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Valores válidos: CACAO, CAFÉ, MIEL, COCOS
+              </p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="subtype">Subtipo *</Label>
-              <Input id="subtype" name="subtype" defaultValue={fruitType.subtype} required />
+              <Input
+                id="subtype"
+                name="subtype"
+                defaultValue={fruitType.subtype}
+                required
+              />
             </div>
           </div>
 
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Cancelar
             </Button>
@@ -68,5 +104,5 @@ export function EditFruitTypeForm({ fruitType }: { fruitType: FruitType }) {
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

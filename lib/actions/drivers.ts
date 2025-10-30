@@ -1,11 +1,11 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { getSession } from "./auth"
 
 export async function getDrivers() {
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
   const { data, error } = await supabase.from("drivers").select("*").order("name", { ascending: true })
 
   if (error) throw error
@@ -13,7 +13,7 @@ export async function getDrivers() {
 }
 
 export async function getDriver(id: string) {
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
   const { data, error } = await supabase.from("drivers").select("*").eq("id", id).single()
 
   if (error) throw error
@@ -28,7 +28,7 @@ export async function createDriver(formData: FormData) {
   const license_number = formData.get("license_number") as string
   const phone = formData.get("phone") as string
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
   const { error } = await supabase.from("drivers").insert({
     name,
     license_number,
@@ -49,7 +49,7 @@ export async function updateDriver(id: string, formData: FormData) {
   const license_number = formData.get("license_number") as string
   const phone = formData.get("phone") as string
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
   const { error } = await supabase.from("drivers").update({ name, license_number, phone }).eq("id", id)
 
   if (error) throw error
@@ -62,7 +62,7 @@ export async function deleteDriver(id: string) {
   const session = await getSession()
   if (!session || session.role !== "admin") throw new Error("No autorizado")
 
-  const supabase = await createClient()
+  const supabase = await createServiceRoleClient()
   const { error } = await supabase.from("drivers").delete().eq("id", id)
 
   if (error) throw error
