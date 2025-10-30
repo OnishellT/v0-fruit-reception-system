@@ -157,6 +157,106 @@ export async function createReception(data: {
   return { success: true, reception_number };
 }
 
+export async function updateReception(
+  receptionId: string,
+  data: {
+    provider_id: string;
+    driver_id: string;
+    fruit_type_id: string;
+    truck_plate: string;
+    total_containers: number;
+    notes?: string;
+    details: Array<{
+      id?: string;
+      quantity: number;
+      weight_kg: number;
+    }>;
+  },
+) {
+  console.log("Updating reception with data:", data);
+  const session = await getSession();
+
+  if (!session) {
+    console.log("No session found");
+    return { error: "No autorizado" };
+  }
+
+  console.log("Session:", session);
+
+  const supabase = await createServiceRoleClient();
+
+  // Convert empty strings to null for UUID fields
+  const providerId = data.provider_id || null;
+  const driverId = data.driver_id || null;
+  const fruitTypeId = data.fruit_type_id || null;
+
+  const { data: reception, error: receptionError } = await supabase
+    .from("receptions")
+    .update({
+      provider_id: providerId,
+      driver_id: driverId,
+      fruit_type_id: fruitTypeId,
+      truck_plate: data.truck_plate,
+      total_containers: data.total_containers,
+      notes: data.notes,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", receptionId)
+    .select()
+    .single();
+
+  if (receptionError) {
+    console.error("Reception update error:", receptionError);
+    return { error: `Error al actualizar recepción: ${receptionError.message}` };
+  }
+
+  // Delete existing details
+  const { error: deleteError } = await supabase
+    .from("reception_details")
+    .delete()
+    .eq("reception_id", receptionId);
+
+  if (deleteError) {
+    console.error("Reception details delete error:", deleteError);
+    return {
+      error: `Error al eliminar detalles existentes: ${deleteError.message}`,
+    };
+  }
+
+  // Insert new details
+  const details = data.details.map((detail, index) => ({
+    reception_id: receptionId,
+    fruit_type_id: fruitTypeId,
+    quantity: detail.quantity,
+    weight_kg: detail.weight_kg,
+    line_number: index + 1,
+  }));
+
+  const { error: detailsError } = await supabase
+    .from("reception_details")
+    .insert(details);
+
+  if (detailsError) {
+    console.error("Reception details error:", detailsError);
+    return {
+      error: `Error al crear detalles de recepción: ${detailsError.message}`,
+    };
+  }
+
+  // Log the action
+  await supabase.from("audit_logs").insert({
+    user_id: session.id,
+    action: "update_reception",
+    table_name: "receptions",
+    record_id: receptionId,
+    new_values: { truck_plate: data.truck_plate, total_containers: data.total_containers },
+  });
+
+  revalidatePath("/dashboard/reception");
+  revalidatePath(`/dashboard/reception/${receptionId}`);
+  return { success: true, reception_number: reception.reception_number };
+}
+
 export async function getReceptions() {
   const supabase = await createServiceRoleClient();
 

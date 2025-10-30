@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { createReception } from "@/lib/actions/reception";
+import { createReception, updateReception } from "@/lib/actions/reception";
 import { Trash2, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
@@ -51,20 +51,37 @@ interface FruitType {
 }
 
 interface ReceptionDetail {
+  id?: string;
   fruit_type_id: string;
   quantity: number;
   weight_kg: number;
+}
+
+interface ExistingReception {
+  id: string;
+  provider_id: string | null;
+  driver_id: string | null;
+  fruit_type_id: string | null;
+  truck_plate: string;
+  total_containers: number;
+  notes: string | null;
 }
 
 export function ReceptionForm({
   providers,
   drivers,
   fruitTypes,
+  reception,
+  details: existingDetails,
 }: {
   providers: Provider[];
   drivers: Driver[];
   fruitTypes: FruitType[];
+  reception?: ExistingReception;
+  details?: ReceptionDetail[];
 }) {
+  // Determine if we're in edit mode
+  const isEditMode = !!reception;
   const router = useRouter();
   const { getEffectiveLayoutMode, effectiveLayout, preferences } =
     useUserPreferences();
@@ -76,20 +93,43 @@ export function ReceptionForm({
   const [activeField, setActiveField] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    provider_id: "",
-    driver_id: "",
-    fruit_type_id: "",
-    truck_plate: "",
-    total_containers: 0,
-    notes: "",
+    provider_id: reception?.provider_id || "",
+    driver_id: reception?.driver_id || "",
+    fruit_type_id: reception?.fruit_type_id || "",
+    truck_plate: reception?.truck_plate || "",
+    total_containers: reception?.total_containers || 0,
+    notes: reception?.notes || "",
   });
 
-  const [details, setDetails] = useState<ReceptionDetail[]>([]);
+  const [details, setDetails] = useState<ReceptionDetail[]>(
+    existingDetails || [],
+  );
   const [currentDetail, setCurrentDetail] = useState({
     fruit_type_id: "",
     quantity: 0,
     weight_kg: 0,
   });
+
+  // Initialize form data when reception changes (for edit mode)
+  useEffect(() => {
+    if (isEditMode && reception) {
+      setFormData({
+        provider_id: reception.provider_id || "",
+        driver_id: reception.driver_id || "",
+        fruit_type_id: reception.fruit_type_id || "",
+        truck_plate: reception.truck_plate || "",
+        total_containers: reception.total_containers || 0,
+        notes: reception.notes || "",
+      });
+    }
+  }, [isEditMode, reception]);
+
+  // Initialize details when existingDetails changes (for edit mode)
+  useEffect(() => {
+    if (isEditMode && existingDetails) {
+      setDetails(existingDetails);
+    }
+  }, [isEditMode, existingDetails]);
 
   // Use useMemo to ensure layout mode is recalculated when preferences change
   const layoutMode = useMemo(() => {
@@ -190,16 +230,28 @@ export function ReceptionForm({
 
     setLoading(true);
 
-    const result = await createReception({
-      ...formData,
-      details,
-    });
+    let result;
+    if (isEditMode && reception) {
+      result = await updateReception(reception.id, {
+        ...formData,
+        details,
+      });
+    } else {
+      result = await createReception({
+        ...formData,
+        details,
+      });
+    }
 
     if (result.error) {
       setError(result.error);
       setLoading(false);
     } else {
-      setSuccess(`Recepción creada exitosamente: ${result.reception_number}`);
+      setSuccess(
+        `Recepción ${
+          isEditMode ? "actualizada" : "creada"
+        } exitosamente: ${result.reception_number}`,
+      );
       setTimeout(() => {
         router.push("/dashboard/reception");
       }, 2000);
@@ -278,10 +330,12 @@ export function ReceptionForm({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">
-            Nueva Recepción
+            {isEditMode ? "Editar Recepción" : "Nueva Recepción"}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Registre una nueva pesada de frutos
+            {isEditMode
+              ? "Modifique los datos de la recepción"
+              : "Registre una nueva pesada de frutos"}
           </p>
         </div>
         <LayoutToggle className="flex-shrink-0" />

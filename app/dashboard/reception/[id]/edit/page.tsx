@@ -1,4 +1,4 @@
-import { getReceptionDetails } from "@/lib/actions/reception";
+import { getReceptionDetails, getProviders, getDrivers, getFruitTypes } from "@/lib/actions/reception";
 import {
   Card,
   CardContent,
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ReceptionForm } from "@/components/reception-form";
 
 export default async function EditReceptionPage({
   params,
@@ -22,6 +23,7 @@ export default async function EditReceptionPage({
     redirect("/dashboard/reception/new");
   }
 
+  // Get reception data
   const result = await getReceptionDetails(id);
 
   if (result.error || !result.reception) {
@@ -41,7 +43,60 @@ export default async function EditReceptionPage({
     );
   }
 
-  const { reception } = result;
+  const { reception, details } = result;
+
+  // Get dropdown options
+  const [providersResult, driversResult, fruitTypesResult] = await Promise.all([
+    getProviders(),
+    getDrivers(),
+    getFruitTypes(),
+  ]);
+
+  if (providersResult.error || driversResult.error || fruitTypesResult.error) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-gray-900">
+          Editar Recepción
+        </h1>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-red-600">Error al cargar datos necesarios</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check if required data exists
+  if (!providersResult.providers || providersResult.providers.length === 0 ||
+      !driversResult.drivers || driversResult.drivers.length === 0 ||
+      !fruitTypesResult.fruitTypes || fruitTypesResult.fruitTypes.length === 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-gray-900">
+          Editar Recepción
+        </h1>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <p className="text-red-600 font-semibold">⚠️ Datos faltantes</p>
+              <div className="space-y-2 text-sm">
+                <p className={providersResult.providers?.length === 0 ? "text-red-600" : "text-green-600"}>
+                  {providersResult.providers?.length === 0 ? "❌ No hay proveedores" : "✅ Proveedores cargados"}
+                </p>
+                <p className={driversResult.drivers?.length === 0 ? "text-red-600" : "text-green-600"}>
+                  {driversResult.drivers?.length === 0 ? "❌ No hay choferes" : "✅ Choferes cargados"}
+                </p>
+                <p className={fruitTypesResult.fruitTypes?.length === 0 ? "text-red-600" : "text-green-600"}>
+                  {fruitTypesResult.fruitTypes?.length === 0 ? "❌ No hay tipos de fruto" : "✅ Tipos de fruto cargados"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -64,35 +119,22 @@ export default async function EditReceptionPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Funcionalidad en Desarrollo</CardTitle>
-          <CardDescription>
-            La edición de recepciones estará disponible próximamente
-          </CardDescription>
+          <CardTitle>Datos de Recepción</CardTitle>
+          <CardDescription>Modifique los campos necesarios</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm text-gray-600">Número de Recepción</p>
-            <p className="font-medium">{reception.reception_number}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Proveedor</p>
-            <p className="font-medium">
-              {reception.provider
-                ? `${reception.provider.code} - ${reception.provider.name}`
-                : "N/A"}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Fecha</p>
-            <p className="font-medium">
-              {new Date(reception.reception_date).toLocaleDateString("es-DO")}
-            </p>
-          </div>
-          <div className="pt-4">
-            <Link href={`/dashboard/reception/${reception.id}`}>
-              <Button>Ver Detalles Completos</Button>
-            </Link>
-          </div>
+        <CardContent>
+          <ReceptionForm
+            providers={providersResult.providers || []}
+            drivers={driversResult.drivers || []}
+            fruitTypes={fruitTypesResult.fruitTypes || []}
+            reception={reception}
+            details={details?.map(d => ({
+              id: d.id,
+              fruit_type_id: d.fruit_type_id,
+              quantity: d.quantity,
+              weight_kg: d.weight_kg,
+            }))}
+          />
         </CardContent>
       </Card>
     </div>
