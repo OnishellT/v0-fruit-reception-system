@@ -28,6 +28,7 @@ import { createReception, updateReception } from "@/lib/actions/reception";
 import { Trash2, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useDailyReceptions } from "@/hooks/use-daily-receptions";
 import { LayoutToggle } from "@/components/layout-toggle";
 import { MobileDetailsList } from "@/components/mobile-details-list";
 import { SummaryCards } from "@/components/summary-cards";
@@ -55,6 +56,7 @@ interface ReceptionDetail {
   fruit_type_id: string;
   quantity: number;
   weight_kg: number;
+  line_number: number;
 }
 
 interface ExistingReception {
@@ -85,6 +87,7 @@ export function ReceptionForm({
   const router = useRouter();
   const { getEffectiveLayoutMode, effectiveLayout, preferences } =
     useUserPreferences();
+  const { addReception } = useDailyReceptions();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -102,12 +105,16 @@ export function ReceptionForm({
   });
 
   const [details, setDetails] = useState<ReceptionDetail[]>(
-    existingDetails || [],
+    (existingDetails || []).map((d, index) => ({
+      ...d,
+      line_number: d.line_number || index + 1,
+    })),
   );
   const [currentDetail, setCurrentDetail] = useState({
     fruit_type_id: "",
     quantity: 0,
     weight_kg: 0,
+    line_number: 1,
   });
 
   // Initialize form data when reception changes (for edit mode)
@@ -168,11 +175,16 @@ export function ReceptionForm({
       return;
     }
 
-    setDetails([...details, currentDetail]);
+    const newDetail = {
+      ...currentDetail,
+      line_number: details.length + 1,
+    };
+    setDetails([...details, newDetail]);
     setCurrentDetail({
       fruit_type_id: formData.fruit_type_id,
       quantity: 0,
       weight_kg: 0,
+      line_number: details.length + 2,
     });
     setError(null);
   };
@@ -181,8 +193,8 @@ export function ReceptionForm({
     setDetails(details.filter((_, i) => i !== index));
   };
 
-  const totalQuantity = details.reduce((sum, d) => sum + d.quantity, 0);
-  const totalWeight = details.reduce((sum, d) => sum + d.weight_kg, 0);
+  const totalQuantity = details.reduce((sum, d) => sum + (d.quantity || 0), 0);
+  const totalWeight = details.reduce((sum, d) => sum + (Number(d.weight_kg) || 0), 0);
   const remainingContainers = formData.total_containers - totalQuantity;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -247,6 +259,16 @@ export function ReceptionForm({
       setError(result.error);
       setLoading(false);
     } else {
+      // Track reception locally for dashboard totals (running daily total)
+      if (!isEditMode) {
+        addReception({
+          totalWeight: totalWeight,
+          totalQuantity: totalQuantity,
+          providerName: providers.find((p) => p.id === formData.provider_id)?.name,
+          truckPlate: formData.truck_plate,
+        });
+      }
+
       setSuccess(
         `Recepción ${
           isEditMode ? "actualizada" : "creada"

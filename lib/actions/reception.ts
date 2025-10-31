@@ -4,259 +4,6 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/auth";
 import { revalidatePath } from "next/cache";
 
-export async function getProviders() {
-  const supabase = await createServiceRoleClient();
-
-  const { data: providers, error } = await supabase
-    .from("providers")
-    .select("*")
-    .eq("is_active", true)
-    .order("name");
-
-  if (error) {
-    return { error: "Error al obtener proveedores" };
-  }
-
-  return { providers };
-}
-
-export async function getDrivers() {
-  const supabase = await createServiceRoleClient();
-
-  const { data: drivers, error } = await supabase
-    .from("drivers")
-    .select("*")
-    .eq("is_active", true)
-    .order("name");
-
-  if (error) {
-    return { error: "Error al obtener choferes" };
-  }
-
-  return { drivers };
-}
-
-export async function getFruitTypes() {
-  const supabase = await createServiceRoleClient();
-
-  const { data: fruitTypes, error } = await supabase
-    .from("fruit_types")
-    .select("*")
-    .eq("is_active", true)
-    .order("type, subtype");
-
-  if (error) {
-    return { error: "Error al obtener tipos de frutos" };
-  }
-
-  return { fruitTypes };
-}
-
-export async function createReception(data: {
-  provider_id: string;
-  driver_id: string;
-  fruit_type_id: string;
-  truck_plate: string;
-  total_containers: number;
-  notes?: string;
-  details: Array<{
-    quantity: number;
-    weight_kg: number;
-  }>;
-}) {
-  console.log("Creating reception with data:", data);
-  const session = await getSession();
-
-  if (!session) {
-    console.log("No session found");
-    return { error: "No autorizado" };
-  }
-
-  console.log("Session:", session);
-
-  const supabase = await createServiceRoleClient();
-
-  // Convert empty strings to null for UUID fields
-  const providerId = data.provider_id || null;
-  const driverId = data.driver_id || null;
-  const fruitTypeId = data.fruit_type_id || null;
-
-  // Generate reception number
-  const today = new Date();
-  const dateStr = today.toISOString().split("T")[0].replace(/-/g, "");
-  const { data: lastReception } = await supabase
-    .from("receptions")
-    .select("reception_number")
-    .like("reception_number", `REC-${dateStr}%`)
-    .order("reception_number", { ascending: false })
-    .limit(1)
-    .single();
-
-  let sequence = 1;
-  if (lastReception) {
-    const lastSeq = Number.parseInt(
-      lastReception.reception_number.split("-")[2],
-    );
-    sequence = lastSeq + 1;
-  }
-
-  const reception_number = `REC-${dateStr}-${sequence.toString().padStart(4, "0")}`;
-
-  const { data: reception, error: receptionError } = await supabase
-    .from("receptions")
-    .insert({
-      reception_number,
-      provider_id: providerId,
-      driver_id: driverId,
-      fruit_type_id: fruitTypeId,
-      truck_plate: data.truck_plate,
-      total_containers: data.total_containers,
-      notes: data.notes,
-      status: "completed",
-      created_by: session.id,
-    })
-    .select()
-    .single();
-
-  if (receptionError) {
-    console.error("Reception creation error:", receptionError);
-    return { error: `Error al crear recepción: ${receptionError.message}` };
-  }
-
-  const details = data.details.map((detail, index) => ({
-    reception_id: reception.id,
-    fruit_type_id: fruitTypeId,
-    quantity: detail.quantity,
-    weight_kg: detail.weight_kg,
-    line_number: index + 1,
-  }));
-
-  const { error: detailsError } = await supabase
-    .from("reception_details")
-    .insert(details);
-
-  if (detailsError) {
-    console.error("Reception details error:", detailsError);
-    // Rollback reception if details fail
-    await supabase.from("receptions").delete().eq("id", reception.id);
-    return {
-      error: `Error al crear detalles de recepción: ${detailsError.message}`,
-    };
-  }
-
-  // Log the action
-  await supabase.from("audit_logs").insert({
-    user_id: session.id,
-    action: "create_reception",
-    table_name: "receptions",
-    record_id: reception.id,
-    new_values: { reception_number, provider_id: data.provider_id },
-  });
-
-  revalidatePath("/dashboard/reception");
-  return { success: true, reception_number };
-}
-
-export async function updateReception(
-  receptionId: string,
-  data: {
-    provider_id: string;
-    driver_id: string;
-    fruit_type_id: string;
-    truck_plate: string;
-    total_containers: number;
-    notes?: string;
-    details: Array<{
-      id?: string;
-      quantity: number;
-      weight_kg: number;
-    }>;
-  },
-) {
-  console.log("Updating reception with data:", data);
-  const session = await getSession();
-
-  if (!session) {
-    console.log("No session found");
-    return { error: "No autorizado" };
-  }
-
-  console.log("Session:", session);
-
-  const supabase = await createServiceRoleClient();
-
-  // Convert empty strings to null for UUID fields
-  const providerId = data.provider_id || null;
-  const driverId = data.driver_id || null;
-  const fruitTypeId = data.fruit_type_id || null;
-
-  const { data: reception, error: receptionError } = await supabase
-    .from("receptions")
-    .update({
-      provider_id: providerId,
-      driver_id: driverId,
-      fruit_type_id: fruitTypeId,
-      truck_plate: data.truck_plate,
-      total_containers: data.total_containers,
-      notes: data.notes,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", receptionId)
-    .select()
-    .single();
-
-  if (receptionError) {
-    console.error("Reception update error:", receptionError);
-    return { error: `Error al actualizar recepción: ${receptionError.message}` };
-  }
-
-  // Delete existing details
-  const { error: deleteError } = await supabase
-    .from("reception_details")
-    .delete()
-    .eq("reception_id", receptionId);
-
-  if (deleteError) {
-    console.error("Reception details delete error:", deleteError);
-    return {
-      error: `Error al eliminar detalles existentes: ${deleteError.message}`,
-    };
-  }
-
-  // Insert new details
-  const details = data.details.map((detail, index) => ({
-    reception_id: receptionId,
-    fruit_type_id: fruitTypeId,
-    quantity: detail.quantity,
-    weight_kg: detail.weight_kg,
-    line_number: index + 1,
-  }));
-
-  const { error: detailsError } = await supabase
-    .from("reception_details")
-    .insert(details);
-
-  if (detailsError) {
-    console.error("Reception details error:", detailsError);
-    return {
-      error: `Error al crear detalles de recepción: ${detailsError.message}`,
-    };
-  }
-
-  // Log the action
-  await supabase.from("audit_logs").insert({
-    user_id: session.id,
-    action: "update_reception",
-    table_name: "receptions",
-    record_id: receptionId,
-    new_values: { truck_plate: data.truck_plate, total_containers: data.total_containers },
-  });
-
-  revalidatePath("/dashboard/reception");
-  revalidatePath(`/dashboard/reception/${receptionId}`);
-  return { success: true, reception_number: reception.reception_number };
-}
-
 export async function getReceptions() {
   const supabase = await createServiceRoleClient();
 
@@ -265,12 +12,15 @@ export async function getReceptions() {
     .select(
       `
       *,
-      provider:providers(id, code, name),
-      driver:drivers(id, name),
-      fruit_type:fruit_types(id, type, subtype),
+      provider:providers!inner(id, code, name),
+      driver:drivers!inner(id, name),
+      fruit_type:fruit_types!inner(id, type, subtype),
       created_by_user:users(id, username)
     `,
     )
+    .is("provider.deleted_at", null)
+    .is("driver.deleted_at", null)
+    .is("fruit_type.deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -279,109 +29,235 @@ export async function getReceptions() {
     return { error: "Error al obtener recepciones" };
   }
 
+  // Fetch quality data separately if needed
+  if (receptions && receptions.length > 0) {
+    const receptionIds = receptions.map(r => r.id);
+    const { data: qualityData } = await supabase
+      .from("calidad_cafe")
+      .select("*")
+      .in("recepcion_id", receptionIds);
+
+    // Attach quality data to each reception
+    receptions.forEach(reception => {
+      reception.calidad_cafe = qualityData?.filter(q => q.recepcion_id === reception.id) || [];
+    });
+  }
+
   return { receptions };
 }
 
 export async function getReceptionDetails(receptionId: string) {
   const supabase = await createServiceRoleClient();
 
-  const { data: reception, error: receptionError } = await supabase
+  const { data: reception, error } = await supabase
     .from("receptions")
     .select(
       `
       *,
-      provider:providers(id, code, name),
-      driver:drivers(id, name),
-      fruit_type:fruit_types(id, type, subtype),
+      provider:providers!inner(id, code, name),
+      driver:drivers!inner(id, name),
+      fruit_type:fruit_types!inner(id, type, subtype),
       created_by_user:users(id, username)
     `,
     )
     .eq("id", receptionId)
     .single();
 
-  if (receptionError) {
-    return { error: "Error al obtener recepción" };
+  if (error || !reception) {
+    console.error("Error fetching reception details:", error);
+    return { error: "Recepción no encontrada" };
   }
 
+  // Fetch reception details separately
   const { data: details, error: detailsError } = await supabase
     .from("reception_details")
-    .select(
-      `
-      *,
-      fruit_type:fruit_types(id, type, subtype)
-    `,
-    )
+    .select(`
+      id,
+      fruit_type_id,
+      quantity,
+      weight_kg,
+      line_number
+    `)
     .eq("reception_id", receptionId)
-    .order("line_number");
+    .order("line_number", { ascending: true });
 
   if (detailsError) {
-    return { error: "Error al obtener detalles" };
+    console.error("Error fetching reception details:", detailsError);
+    return { error: "Error al cargar los detalles de la recepción: " + detailsError.message };
   }
 
-  return { reception, details };
-}
+  // Fetch fruit types separately
+  let fruitTypesMap: Record<string, any> = {};
+  if (details && details.length > 0) {
+    const fruitTypeIds = [...new Set(details.map(d => d.fruit_type_id))];
+    const { data: fruitTypes, error: fruitTypesError } = await supabase
+      .from("fruit_types")
+      .select("id, type, subtype")
+      .in("id", fruitTypeIds);
 
-export async function createProvider(data: {
-  code: string;
-  name: string;
-  contact_person?: string;
-  phone?: string;
-  address?: string;
-}) {
-  const session = await getSession();
-
-  if (!session) {
-    return { error: "No autorizado" };
-  }
-
-  const supabase = await createServiceRoleClient();
-
-  const { data: provider, error } = await supabase
-    .from("providers")
-    .insert({
-      ...data,
-      created_by: session.id,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    if (error.code === "23505") {
-      return { error: "El código de proveedor ya existe" };
+    if (!fruitTypesError && fruitTypes) {
+      fruitTypesMap = fruitTypes.reduce((acc, ft) => {
+        acc[ft.id] = ft;
+        return acc;
+      }, {} as Record<string, any>);
     }
-    return { error: "Error al crear proveedor" };
   }
 
-  revalidatePath("/dashboard/reception");
-  return { success: true, provider };
+  // Attach fruit type data to details
+  const detailsWithFruitType = details?.map(detail => ({
+    ...detail,
+    fruit_type: detail.fruit_type_id ? fruitTypesMap[detail.fruit_type_id] : null
+  })) || [];
+
+  return { reception, details: detailsWithFruitType };
 }
 
-export async function createDriver(data: {
-  name: string;
-  license_number?: string;
-  phone?: string;
-}) {
+export async function createReception(data: any) {
   const session = await getSession();
-
   if (!session) {
     return { error: "No autorizado" };
   }
 
-  const supabase = await createServiceRoleClient();
+  try {
+    const supabase = await createServiceRoleClient();
 
-  const { data: driver, error } = await supabase
-    .from("drivers")
-    .insert({
-      ...data,
-      created_by: session.id,
-    })
-    .select()
-    .single();
+    // Generate reception number
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
 
-  if (error) {
-    return { error: "Error al crear chofer" };
+    // Get the last reception number for today
+    const { data: lastReception } = await supabase
+      .from("receptions")
+      .select("reception_number")
+      .like("reception_number", `REC-${dateStr}-%`)
+      .order("reception_number", { ascending: false })
+      .limit(1)
+      .single();
+
+    let sequence = 1;
+    if (lastReception) {
+      const lastSequence = parseInt(lastReception.reception_number.split("-")[2]);
+      sequence = lastSequence + 1;
+    }
+
+    const reception_number = `REC-${dateStr}-${sequence.toString().padStart(4, "0")}`;
+
+    // Insert reception
+    const { data: reception, error: receptionError } = await supabase
+      .from("receptions")
+      .insert({
+        reception_number,
+        provider_id: data.provider_id,
+        driver_id: data.driver_id,
+        fruit_type_id: data.fruit_type_id,
+        truck_plate: data.truck_plate,
+        total_containers: data.total_containers,
+        total_weight: data.total_weight,
+        created_by: session.id,
+      })
+      .select()
+      .single();
+
+    if (receptionError) {
+      throw receptionError;
+    }
+
+    // Insert reception details
+    if (data.details && data.details.length > 0) {
+      const detailsWithReception = data.details.map((detail: any) => ({
+        ...detail,
+        reception_id: reception.id,
+      }));
+
+      const { error: detailsError } = await supabase
+        .from("reception_details")
+        .insert(detailsWithReception);
+
+      if (detailsError) {
+        throw detailsError;
+      }
+    }
+
+    // Log audit
+    await supabase.from("audit_logs").insert({
+      user_id: session.id,
+      action: "create",
+      table_name: "receptions",
+      record_id: reception.id,
+    });
+
+    revalidatePath("/dashboard/reception");
+    return { success: true, reception };
+  } catch (error: any) {
+    console.error("Error creating reception:", error);
+    return { error: error.message || "Error al crear la recepción" };
+  }
+}
+
+export async function updateReception(id: string, data: any) {
+  const session = await getSession();
+  if (!session) {
+    return { error: "No autorizado" };
   }
 
-  revalidatePath("/dashboard/reception");
-  return { success: true, driver };
+  try {
+    const supabase = await createServiceRoleClient();
+
+    // Update reception
+    const { data: reception, error: receptionError } = await supabase
+      .from("receptions")
+      .update({
+        provider_id: data.provider_id,
+        driver_id: data.driver_id,
+        fruit_type_id: data.fruit_type_id,
+        truck_plate: data.truck_plate,
+        total_containers: data.total_containers,
+        total_weight: data.total_weight,
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (receptionError) {
+      throw receptionError;
+    }
+
+    // Delete existing details
+    await supabase
+      .from("reception_details")
+      .delete()
+      .eq("reception_id", id);
+
+    // Insert new details
+    if (data.details && data.details.length > 0) {
+      const detailsWithReception = data.details.map((detail: any) => ({
+        ...detail,
+        reception_id: id,
+      }));
+
+      const { error: detailsError } = await supabase
+        .from("reception_details")
+        .insert(detailsWithReception);
+
+      if (detailsError) {
+        throw detailsError;
+      }
+    }
+
+    // Log audit
+    await supabase.from("audit_logs").insert({
+      user_id: session.id,
+      action: "update",
+      table_name: "receptions",
+      record_id: id,
+    });
+
+    revalidatePath("/dashboard/reception");
+    revalidatePath(`/dashboard/reception/${id}`);
+    return { success: true, reception };
+  } catch (error: any) {
+    console.error("Error updating reception:", error);
+    return { error: error.message || "Error al actualizar la recepción" };
+  }
 }
+

@@ -22,6 +22,7 @@ interface FruitType {
   id: string;
   type: string;
   subtype: string;
+  description: string | null;
 }
 
 export function EditFruitTypeForm({ fruitType }: { fruitType: FruitType }) {
@@ -84,6 +85,15 @@ export function EditFruitTypeForm({ fruitType }: { fruitType: FruitType }) {
                 name="subtype"
                 defaultValue={fruitType.subtype}
                 required
+              />
+            </div>
+
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="description">Descripción</Label>
+              <Input
+                id="description"
+                name="description"
+                defaultValue={fruitType.description || ""}
               />
             </div>
           </div>

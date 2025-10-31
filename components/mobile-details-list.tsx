@@ -23,8 +23,8 @@ export function MobileDetailsList({
   onRemoveDetail,
   disabled = false,
 }: MobileDetailsListProps) {
-  const totalQuantity = details.reduce((sum, d) => sum + d.quantity, 0);
-  const totalWeight = details.reduce((sum, d) => sum + d.weight_kg, 0);
+  const totalQuantity = details.reduce((sum, d) => sum + (d.quantity || 0), 0);
+  const totalWeight = details.reduce((sum, d) => sum + (Number(d.weight_kg) || 0), 0);
 
   if (details.length === 0) {
     return null;

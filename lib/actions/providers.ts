@@ -10,7 +10,13 @@ export async function getProviders() {
 
     const { data, error } = await supabase
       .from("providers")
-      .select("*")
+      .select(
+        `
+        *,
+        asociacion:asociaciones(id, code, name)
+      `,
+      )
+      .is("deleted_at", null)
       .order("name", { ascending: true });
 
     if (error) {
@@ -115,7 +121,10 @@ export async function deleteProvider(id: string) {
   if (!session || session.role !== "admin") throw new Error("No autorizado");
 
   const supabase = await createServiceRoleClient();
-  const { error } = await supabase.from("providers").delete().eq("id", id);
+  const { error } = await supabase
+    .from("providers")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
 
   if (error) throw error;
 

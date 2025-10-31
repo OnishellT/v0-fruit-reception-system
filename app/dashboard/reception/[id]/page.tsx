@@ -51,11 +51,23 @@ export default async function ReceptionDetailPage({
   }
 
   const { reception, details } = result;
+
+  // Debug logging
+  console.log("🔍 Reception details:", { receptionId: reception.id, detailsCount: details?.length, details });
+
+  // Calculate total weight with safe checks
   const totalWeight =
-    details?.reduce(
-      (sum, d) => sum + Number.parseFloat(d.weight_kg.toString()),
-      0,
-    ) || 0;
+    Array.isArray(details) && details.length > 0
+      ? details.reduce(
+          (sum, d) => {
+            const weight = Number.parseFloat(d.weight_kg?.toString() || "0");
+            return sum + (isNaN(weight) ? 0 : weight);
+          },
+          0,
+        )
+      : 0;
+
+  console.log("⚖️ Calculated total weight:", totalWeight);
 
   return (
     <div className="space-y-6">
@@ -181,7 +193,7 @@ export default async function ReceptionDetailPage({
                     {detail.quantity}
                   </TableCell>
                   <TableCell className="text-right">
-                    {Number.parseFloat(detail.weight_kg.toString()).toFixed(2)}
+                    {Number.parseFloat(detail.weight_kg?.toString() || "0").toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))}

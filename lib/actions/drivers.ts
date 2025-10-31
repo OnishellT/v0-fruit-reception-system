@@ -1,72 +1,86 @@
-"use server"
+"use server";
 
-import { createServiceRoleClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
-import { getSession } from "./auth"
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { getSession } from "./auth";
 
 export async function getDrivers() {
-  const supabase = await createServiceRoleClient()
-  const { data, error } = await supabase.from("drivers").select("*").order("name", { ascending: true })
+  const supabase = await createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("drivers")
+    .select("*")
+    .is("deleted_at", null)
+    .order("name", { ascending: true });
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 
 export async function getDriver(id: string) {
-  const supabase = await createServiceRoleClient()
-  const { data, error } = await supabase.from("drivers").select("*").eq("id", id).single()
+  const supabase = await createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("drivers")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 
 export async function createDriver(formData: FormData) {
-  const session = await getSession()
-  if (!session) throw new Error("No autorizado")
+  const session = await getSession();
+  if (!session) throw new Error("No autorizado");
 
-  const name = formData.get("name") as string
-  const license_number = formData.get("license_number") as string
-  const phone = formData.get("phone") as string
+  const name = formData.get("name") as string;
+  const license_number = formData.get("license_number") as string;
+  const phone = formData.get("phone") as string;
 
-  const supabase = await createServiceRoleClient()
+  const supabase = await createServiceRoleClient();
   const { error } = await supabase.from("drivers").insert({
     name,
     license_number,
     phone,
-  })
+  });
 
-  if (error) throw error
+  if (error) throw error;
 
-  revalidatePath("/dashboard/choferes")
-  return { success: true }
+  revalidatePath("/dashboard/choferes");
+  return { success: true };
 }
 
 export async function updateDriver(id: string, formData: FormData) {
-  const session = await getSession()
-  if (!session) throw new Error("No autorizado")
+  const session = await getSession();
+  if (!session) throw new Error("No autorizado");
 
-  const name = formData.get("name") as string
-  const license_number = formData.get("license_number") as string
-  const phone = formData.get("phone") as string
+  const name = formData.get("name") as string;
+  const license_number = formData.get("license_number") as string;
+  const phone = formData.get("phone") as string;
 
-  const supabase = await createServiceRoleClient()
-  const { error } = await supabase.from("drivers").update({ name, license_number, phone }).eq("id", id)
+  const supabase = await createServiceRoleClient();
+  const { error } = await supabase
+    .from("drivers")
+    .update({ name, license_number, phone })
+    .eq("id", id);
 
-  if (error) throw error
+  if (error) throw error;
 
-  revalidatePath("/dashboard/choferes")
-  return { success: true }
+  revalidatePath("/dashboard/choferes");
+  return { success: true };
 }
 
 export async function deleteDriver(id: string) {
-  const session = await getSession()
-  if (!session || session.role !== "admin") throw new Error("No autorizado")
+  const session = await getSession();
+  if (!session || session.role !== "admin") throw new Error("No autorizado");
 
-  const supabase = await createServiceRoleClient()
-  const { error } = await supabase.from("drivers").delete().eq("id", id)
+  const supabase = await createServiceRoleClient();
+  const { error } = await supabase
+    .from("drivers")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
 
-  if (error) throw error
+  if (error) throw error;
 
-  revalidatePath("/dashboard/choferes")
-  return { success: true }
+  revalidatePath("/dashboard/choferes");
+  return { success: true };
 }

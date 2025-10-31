@@ -22,7 +22,7 @@ interface Provider {
   id: string;
   code: string;
   name: string;
-  contact: string | null;
+  contact_person: string | null;
   phone: string | null;
   address: string | null;
   asociacion_id: string | null;
@@ -100,7 +100,7 @@ export function EditProviderForm({
               <Input
                 id="contact"
                 name="contact"
-                defaultValue={provider.contact || ""}
+                defaultValue={provider.contact_person || ""}
               />
             </div>
 

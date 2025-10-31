@@ -1,11 +1,11 @@
-import { getDrivers } from "@/lib/actions/drivers"
-import { DriversTable } from "@/components/drivers-table"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
-import Link from "next/link"
+import { getDrivers } from "@/lib/actions/drivers";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import Link from "next/link";
+import DriversTableClient from "./drivers-table-client";
 
 export default async function DriversPage() {
-  const drivers = await getDrivers()
+  const drivers = await getDrivers();
 
   return (
     <div className="space-y-6">
@@ -22,7 +22,7 @@ export default async function DriversPage() {
         </Link>
       </div>
 
-      <DriversTable drivers={drivers} />
+      <DriversTableClient drivers={drivers} />
     </div>
-  )
+  );
 }

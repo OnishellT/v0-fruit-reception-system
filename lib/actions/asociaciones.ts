@@ -9,14 +9,29 @@ export async function getAsociaciones() {
     const supabase = await createServiceRoleClient();
     const { data, error } = await supabase
       .from("asociaciones")
-      .select("*")
+      .select(
+        `
+        *,
+        providers(id, deleted_at)
+      `,
+      )
+      .is("deleted_at", null)
       .order("name", { ascending: true });
 
     if (error) {
       console.error("[v0] Error fetching asociaciones:", error);
       return { error: error.message, data: null };
     }
-    return { data, error: null };
+
+    // Filter out soft-deleted providers and count only active ones
+    const transformedData =
+      data?.map((asociacion) => ({
+        ...asociacion,
+        providers_count:
+          asociacion.providers?.filter((p) => !p.deleted_at).length || 0,
+      })) || [];
+
+    return { data: transformedData, error: null };
   } catch (error: any) {
     console.error("[v0] Exception fetching asociaciones:", error);
     return { error: error.message, data: null };
@@ -101,7 +116,10 @@ export async function deleteAsociacion(id: string) {
   if (!session || session.role !== "admin") throw new Error("No autorizado");
 
   const supabase = await createServiceRoleClient();
-  const { error } = await supabase.from("asociaciones").delete().eq("id", id);
+  const { error } = await supabase
+    .from("asociaciones")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
 
   if (error) throw error;
 

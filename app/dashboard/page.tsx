@@ -1,9 +1,19 @@
 import { getSession } from "@/lib/actions/auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Package, Users, TrendingUp } from "lucide-react"
+import { DashboardStats } from "@/components/dashboard-stats"
 
 export default async function DashboardPage() {
   const session = await getSession()
+
+  if (!session) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">No autorizado</h1>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -12,40 +22,7 @@ export default async function DashboardPage() {
         <p className="text-gray-600 mt-2">Panel de control del sistema de recepción de frutos</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Recepciones Hoy</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">Pendientes de procesar</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Peso (kg)</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">Acumulado del día</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1</div>
-            <p className="text-xs text-muted-foreground">En el sistema</p>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardStats />
 
       <Card>
         <CardHeader>

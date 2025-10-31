@@ -2,6 +2,7 @@ import type React from "react"
 import { getSession } from "@/lib/actions/auth"
 import { redirect } from "next/navigation"
 import { LogoutButton } from "@/components/logout-button"
+import { DashboardProviderWrapper } from "@/components/dashboard-provider-wrapper"
 import { Users, Package, LayoutDashboard, FileText, Truck, UserCircle, Apple, Building2 } from "lucide-react"
 import Link from "next/link"
 
@@ -13,7 +14,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <DashboardProviderWrapper>
+      <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside className="w-64 bg-card border-r border-border">
         <div className="flex flex-col h-full">
@@ -111,10 +113,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">{children}</div>
-      </main>
-    </div>
+        {/* Main content */}
+        <main className="flex-1 overflow-auto">
+          <div className="p-8">{children}</div>
+        </main>
+      </div>
+    </DashboardProviderWrapper>
   )
 }

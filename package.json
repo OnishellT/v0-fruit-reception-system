@@ -6,7 +6,13 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "test": "node tests/test-auth.js",
+    "test:all": "./tests/run-tests.sh",
+    "test:comprehensive": "node tests/test-complete.js",
+    "test:crud": "node tests/test-crud-comprehensive.js",
+    "test:reception": "node tests/test-reception-simple.js",
+    "test:reception:create": "node tests/test-reception-create.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -70,6 +76,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.2.3",
+    "playwright": "^1.48.0",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tsx": "^4.20.6",
