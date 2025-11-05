@@ -1,16 +1,15 @@
 # v0-fruit-reception-system Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-10-31
+Auto-generated from all feature plans. Last updated: 2025-11-05
 
 ## Active Technologies
 
-- TypeScript 5.0.2 + Next.js 16+, React 19.2.0, Tailwind CSS, Supabase (PostgreSQL) (001-cafe-quality)
+- TypeScript/JavaScript with Next.js 15 + Next.js 15 (App Router), Supabase (PostgreSQL + RLS), Drizzle ORM (005-cash-pos-system)
 
 ## Project Structure
 
 ```text
-backend/
-frontend/
+src/
 tests/
 ```
 
@@ -20,11 +19,11 @@ npm test && npm run lint
 
 ## Code Style
 
-TypeScript 5.0.2: Follow standard conventions
+TypeScript/JavaScript with Next.js 15: Follow standard conventions
 
 ## Recent Changes
 
-- 001-cafe-quality: Added TypeScript 5.0.2 + Next.js 16+, React 19.2.0, Tailwind CSS, Supabase (PostgreSQL)
+- 005-cash-pos-system: Added TypeScript/JavaScript with Next.js 15 + Next.js 15 (App Router), Supabase (PostgreSQL + RLS), Drizzle ORM
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

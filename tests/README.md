@@ -1,370 +1,198 @@
-# Fruit Reception System - Test Suite
+# Fruit Reception System - Comprehensive Test Suite
 
-Simple test suite for the Fruit Reception System using Playwright (Node.js).
+This directory contains a comprehensive test suite for the Fruit Reception System, covering all major functionality including entity management, reception creation, quality evaluation, discount calculations, and cacao processing workflows.
 
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Running Tests](#running-tests)
-- [Test Files](#test-files)
-- [Writing Tests](#writing-tests)
-- [Troubleshooting](#troubleshooting)
-
-## 🎯 Overview
-
-This test suite provides comprehensive coverage of the Fruit Reception System:
-
-- ✅ Authentication flow
-- ✅ CRUD operations (Create, Read, Update, Delete)
-- ✅ Form submissions and validations
-- ✅ Search and filtering
-- ✅ Sorting functionality
-- ✅ Pagination
-- ✅ Mobile responsiveness
-- ✅ Error handling
-
-## 📦 Prerequisites
-
-- Node.js 16+ installed
-- Development server running on port 3000
-- Playwright library (installed automatically with npm install)
-
-## 🚀 Installation
-
-```bash
-npm install
-```
-
-## ▶️ Running Tests
-
-### Quick Start
-
-Run all tests with the test runner script:
-
-```bash
-./tests/run-tests.sh
-```
-
-### Manual Test Execution
-
-#### 1. Authentication Tests
-
-```bash
-npm test
-# or
-node tests/test-auth.js
-```
-
-#### 2. Comprehensive Test Suite
-
-```bash
-npm run test:comprehensive
-# or
-node tests/test-complete.js
-```
-
-#### 3. Test Data Manager
-
-```bash
-node tests/test-data-manager.js
-```
-
-### Test Server Management
-
-The test runner automatically starts the dev server if not running. To start manually:
-
-```bash
-npm run dev
-```
-
-Then run tests in another terminal:
-
-```bash
-./tests/run-tests.sh
-```
-
-## 📁 Test Files
+## Test Structure
 
 ```
 tests/
-├── run-tests.sh              # Main test runner script
-├── test-auth.js              # Authentication tests
-├── test-complete.js          # Comprehensive test suite
-├── test-data-manager.js      # Test data management
-├── test-utils.js             # Test helper utilities
-└── README.md                 # This file
+├── automated/                    # Comprehensive automated tests
+│   ├── test-entity-crud-comprehensive.js      # Entity CRUD operations
+│   ├── test-reception-creation-comprehensive.js # Reception creation with quality
+│   ├── test-cacao-lab-samples.js              # Cacao lab sample workflows
+│   ├── test-quality-discount-verification.js  # Quality & discount verification
+│   └── test-complete-e2e-workflow.js          # Complete end-to-end workflow
+├── simple/                      # Basic functionality tests
+├── api/                         # API endpoint tests
+├── db/                          # Database connectivity tests
+└── debug/                       # Development debugging tests
 ```
 
-## ✍️ Writing Tests
+## Available Test Commands
 
-### Test Pattern
-
-```javascript
-const { chromium } = require('playwright');
-
-(async () => {
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
-  
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  
-  try {
-    // Test steps
-    await page.goto('http://localhost:3000/login');
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('**/dashboard');
-    
-    console.log('✅ Test passed!');
-  } catch (error) {
-    console.error('❌ Test failed:', error.message);
-  } finally {
-    await browser.close();
-  }
-})();
-```
-
-### Using Test Utilities
-
-```javascript
-const { chromium } = require('playwright');
-const {
-  login,
-  createProvider,
-  waitForTable
-} = require('./test-utils');
-
-(async () => {
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
-  
-  try {
-    // Login using utility
-    await login(page);
-    
-    // Create provider using utility
-    const provider = await createProvider(page);
-    console.log('Created:', provider.name);
-    
-    // Verify in table
-    await page.goto('/dashboard/proveedores');
-    await waitForTable(page);
-    
-    console.log('✅ Test passed!');
-  } catch (error) {
-    console.error('❌ Test failed:', error.message);
-  } finally {
-    await browser.close();
-  }
-})();
-```
-
-## 🔧 Test Utilities
-
-### Available Functions
-
-```javascript
-const utils = require('./test-utils');
-
-// Login
-await utils.login(page, { username: 'admin', password: 'admin123' });
-
-// Create test data
-const provider = await utils.createProvider(page, {
-  code: 'TEST123',
-  name: 'Test Provider'
-});
-
-const driver = await utils.createDriver(page, {
-  name: 'Test Driver',
-  license_number: 'LIC123'
-});
-
-const fruitType = await utils.createFruitType(page, {
-  type: 'Test Type',
-  subtype: 'Test Subtype'
-});
-
-const reception = await utils.createReception(page, {
-  truck_plate: 'TEST-123',
-  total_containers: 10
-});
-
-// Table operations
-await utils.waitForTable(page);
-await utils.searchInTable(page, 'search term');
-await utils.sortByColumn(page, 'Nombre');
-
-// Viewport
-await utils.setMobileViewport(page);
-await utils.setDesktopViewport(page);
-```
-
-## 🔍 Common Patterns
-
-### Authentication
-
-```javascript
-// Login
-await page.goto('/login');
-await page.fill('input[name="username"]', 'admin');
-await page.fill('input[name="password"]', 'admin123');
-await page.click('button[type="submit"]');
-await page.waitForURL('**/dashboard');
-
-// Logout
-await page.click('button:has-text("Cerrar Sesión")');
-```
-
-### Form Submission
-
-```javascript
-// Fill form
-await page.fill('input[name="field1"]', 'value1');
-await page.selectOption('select[name="field2"]', { index: 1 });
-
-// Submit
-await page.click('button[type="submit"]');
-await page.waitForURL('**/success-page');
-```
-
-### Search and Filter
-
-```javascript
-const searchInput = page.locator('input[placeholder*="Buscar"]');
-await searchInput.fill('search term');
-await page.waitForTimeout(1000);
-```
-
-### Table Operations
-
-```javascript
-await page.waitForSelector('table');
-await page.waitForLoadState('networkidle');
-
-// Sort
-await page.click('th:has-text("Column Name")');
-await page.waitForTimeout(500);
-```
-
-### Mobile Testing
-
-```javascript
-await page.setViewportSize({ width: 375, height: 667 });
-await page.goto('/dashboard/reception');
-await expect(page.locator('table')).toBeVisible();
-```
-
-## 🔧 Troubleshooting
-
-### Server Not Running
+### Individual Test Suites
 
 ```bash
-npm run dev
+# Entity CRUD Operations (create, read, update entities)
+npm run test:entity-crud
+
+# Reception Creation with Quality Data
+npm run test:reception-creation
+
+# Cacao Lab Samples & Processing
+npm run test:cacao-lab
+
+# Quality Measurements & Discount Calculations
+npm run test:quality-discounts
+
+# Complete End-to-End Workflow
+npm run test:e2e-complete
 ```
 
-### Port Already in Use
+### Legacy Tests
 
 ```bash
-lsof -ti:3000 | xargs kill -9
-PORT=3001 npm run dev
+# Basic functionality tests
+npm run test:simple
+
+# Authentication tests
+npm run test:auth
+
+# Database connectivity
+npm run test:database
+
+# Enhanced MCP debugging
+npm run test:enhanced
 ```
 
-### Tests Timing Out
+## Test Coverage
 
-Increase timeout in test:
+### ✅ Entity Management
+- **Associations**: Create, edit, verify in tables
+- **Providers**: Create, edit, verify in tables
+- **Drivers**: Create, edit, verify in tables
+- **Fruit Types**: Create, edit, verify in tables (CAFÉ, CACAO, etc.)
 
-```javascript
-await page.goto('http://localhost:3000/dashboard', {
-  timeout: 60000
-});
+### ✅ Reception Creation
+- **Basic Receptions**: Create with all entity relationships
+- **Quality Data**: Input violetas, humedad, moho measurements
+- **Discount Calculations**: Automatic weight adjustments based on quality
+- **Verification**: Confirm correct discount application
+
+### ✅ Quality & Pricing System
+- **CAFÉ Quality Thresholds**:
+  - Violetas: 0-5% (0%), 5-10% (2%), 10-20% (5%)
+  - Humedad: 0-10% (0%), 10-15% (2%), 15-25% (5%), 25%+ (10%)
+  - Moho: 0-3% (0%), 3-5% (3%), 5-10% (8%)
+- **Automatic Calculations**: Server-side discount application
+- **Weight Adjustments**: Final weight = original - discounts
+
+### ✅ Cacao Processing Module
+- **Lab Samples**: Generate samples from cacao receptions
+- **Quality Measurements**: Input dried sample results
+- **Parent Reception Updates**: Lab data propagates to main reception
+- **Workflow Testing**: Complete drying and analysis cycle
+
+### ✅ End-to-End Workflows
+- **Complete Workflow**: Entities → Reception → Quality → Discounts
+- **Data Integrity**: Verify all relationships and calculations
+- **UI Verification**: Confirm data appears correctly in tables/forms
+
+## Quality Discount Examples
+
+### CAFÉ Reception (500kg) with Quality Issues:
+- **Violetas**: 12% → 5% discount → 25kg deduction
+- **Humedad**: 18% → 5% discount → 25kg deduction
+- **Moho**: 7% → 8% discount → 35kg deduction
+- **Total Discount**: 85kg (17% of original weight)
+- **Final Weight**: 415kg
+
+### Perfect Quality CAFÉ (500kg):
+- All metrics < threshold → 0% discount
+- **Final Weight**: 500kg (no deductions)
+
+## Running Tests
+
+### Prerequisites
+1. Development server running: `npm run dev`
+2. Database migrations applied
+3. Admin user exists (username: admin, password: admin123)
+
+### Individual Test Execution
+```bash
+# Run specific test suite
+npm run test:entity-crud
+
+# Run with timeout (prevents hanging)
+timeout 120s npm run test:e2e-complete
 ```
 
-### Debugging Tests
+### Test Results
+Each test provides:
+- ✅ **Pass/Fail Status**: Clear success/failure indicators
+- 📊 **Test Summary**: Passed/failed/total counts
+- 🎯 **Detailed Logging**: Step-by-step execution feedback
+- ⚠️ **Warnings**: Non-critical issues (e.g., UI elements not visible)
 
-```javascript
-// Run in non-headless mode
+## Test Data
+
+Tests create unique test data using timestamps to avoid conflicts:
+- Associations: `ASOC{timestamp}`
+- Providers: `PROV{timestamp}`
+- Drivers: `LIC{timestamp}`
+- Receptions: `E2E{timestamp}`
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Browser Timeout**: Tests may hang on slow systems
+   ```bash
+   timeout 120s npm run test:e2e-complete
+   ```
+
+2. **Association Selection**: Radix UI Select components may not work with standard Playwright methods
+   - Tests skip association selection if complex
+   - Manual testing recommended for association workflows
+
+3. **Database State**: Tests assume clean database state
+   - Run migrations before testing
+   - Clear test data between runs if needed
+
+### Debug Mode
+Run tests with browser visible for debugging:
+```bash
+# Edit test file to set headless: false
 const browser = await chromium.launch({
-  headless: false,
-  slowMo: 1000
+  headless: false,  // Change to true for headless
+  args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
-
-// Add delays
-await page.waitForTimeout(2000);
 ```
 
-## 📊 Test Coverage
+## Test Maintenance
 
-### Features Tested
+### Adding New Tests
+1. Follow existing patterns in `tests/automated/`
+2. Use timestamp-based unique identifiers
+3. Include proper error handling and logging
+4. Add npm script to `package.json`
 
-- [x] Authentication (login/logout)
-- [x] Dashboard navigation
-- [x] Providers CRUD
-- [x] Drivers CRUD
-- [x] Fruit Types CRUD
-- [x] Associations CRUD
-- [x] Receptions CRUD
-- [x] User management
-- [x] Audit logs
-- [x] Search functionality
-- [x] Sorting
-- [x] Pagination
-- [x] Mobile responsiveness
-- [x] Error handling
+### Updating Test Data
+- Modify test constants for different scenarios
+- Update expected calculations when discount rules change
+- Verify UI selectors haven't changed
 
-### Test Data
+## Integration with CI/CD
 
-Tests create their own data with unique timestamps:
-
-```javascript
-const timestamp = Date.now();
-const testData = {
-  name: `Test ${timestamp}`,
-  // ...
-};
+Tests can be integrated into CI/CD pipelines:
+```yaml
+# Example GitHub Actions
+- name: Run Test Suite
+  run: |
+    npm run dev &
+    sleep 10
+    npm run test:e2e-complete
 ```
 
-## 📝 Best Practices
+## Performance Considerations
 
-1. **Use Test Utilities**: Leverage `test-utils.js` for common operations
-2. **Cleanup**: Tests should clean up after themselves
-3. **Unique Data**: Use timestamps to ensure unique test data
-4. **Wait for Elements**: Always wait for elements before interacting
-5. **Screenshots**: Use `await page.screenshot()` for debugging
-6. **Isolation**: Each test should be independent
-
-## 📞 Support
-
-For issues:
-1. Check this README
-2. Review test output
-3. Run tests with longer timeouts
-4. Check if server is running
-
-## 🚀 Quick Reference
-
-```bash
-# Run all tests
-./tests/run-tests.sh
-
-# Run authentication tests
-npm test
-node tests/test-auth.js
-
-# Run comprehensive tests
-npm run test:comprehensive
-node tests/test-complete.js
-
-# Run test data manager
-node tests/test-data-manager.js
-```
+- Tests run with `headless: true` by default for CI compatibility
+- Individual tests timeout after 2 minutes
+- Browser instances are properly closed after each test
+- Database connections are handled by the application
 
 ---
 
-**Happy Testing! 🎉**
+**Test Suite Version**: 1.0
+**Last Updated**: November 2025
+**Coverage**: Entity CRUD, Reception Creation, Quality Evaluation, Discount Calculations, Cacao Processing

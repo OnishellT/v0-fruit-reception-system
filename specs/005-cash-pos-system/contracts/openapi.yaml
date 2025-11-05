@@ -1,0 +1,1030 @@
+openapi: 3.0.3
+info:
+  title: Cash POS Reception API
+  version: 1.0.0
+  description: API for Cash Point-of-Sale Reception System - isolated domain for cash fruit receptions
+
+servers:
+  - url: /api/cash
+    description: Cash POS API endpoint
+
+security:
+  - bearerAuth: []
+
+paths:
+  # RECEPTIONS
+  /receptions:
+    get:
+      summary: List cash receptions
+      description: Retrieve paginated list of cash receptions with optional filters
+      tags:
+        - Receptions
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: fruitTypeId
+          in: query
+          schema:
+            type: integer
+        - name: customerId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of receptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CashReception'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create cash reception
+      description: Create new cash reception with automatic discount calculation and price snapshot
+      tags:
+        - Receptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fruitTypeId
+                - customerId
+                - totalWeightKgOriginal
+              properties:
+                fruitTypeId:
+                  type: integer
+                  description: Fruit type ID
+                customerId:
+                  type: integer
+                  description: Customer ID
+                receptionDate:
+                  type: string
+                  format: date-time
+                  default: now
+                  description: Reception date (defaults to current time)
+                containersCount:
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  description: Number of containers
+                totalWeightKgOriginal:
+                  type: number
+                  minimum: 0
+                  description: Original weight in kg before discounts
+                calidadHumedad:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                  description: Humidity percentage
+                calidadMoho:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                  description: Moho percentage
+                calidadVioletas:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                  description: Violetas percentage
+      responses:
+        '201':
+          description: Reception created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashReception'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: No price found for date/fruit combination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Error'
+                example:
+                  error: "No active price found for fruit type on specified date"
+                  code: "PRICE_NOT_FOUND"
+
+  /receptions/{id}:
+    get:
+      summary: Get cash reception
+      description: Retrieve single cash reception by ID
+      tags:
+        - Receptions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reception details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashReception'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update cash reception
+      description: Update existing reception (recalculates discounts, preserves price snapshot)
+      tags:
+        - Receptions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                totalWeightKgOriginal:
+                  type: number
+                  minimum: 0
+                  description: Updated weight
+                calidadHumedad:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                calidadMoho:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                calidadVioletas:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+      responses:
+        '200':
+          description: Reception updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashReception'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete cash reception
+      description: Delete reception (admin only)
+      tags:
+        - Receptions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Reception deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /receptions/{id}/invoice:
+    get:
+      summary: Generate invoice
+      description: Generate printable invoice HTML for reception
+      tags:
+        - Invoices
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Invoice HTML
+          content:
+            text/html:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # PRICES
+  /prices:
+    get:
+      summary: List daily prices
+      description: Retrieve daily prices for all fruit types
+      tags:
+        - Pricing
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: fruitTypeId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of prices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyPrice'
+
+    post:
+      summary: Set daily price
+      description: Create or update daily price for fruit type
+      tags:
+        - Pricing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fruitTypeId
+                - priceDate
+                - pricePerKg
+              properties:
+                fruitTypeId:
+                  type: integer
+                priceDate:
+                  type: string
+                  format: date
+                pricePerKg:
+                  type: number
+                  minimum: 0
+                  description: Price per kilogram
+                active:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Price created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyPrice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /prices/{id}:
+    put:
+      summary: Update daily price
+      description: Update existing daily price
+      tags:
+        - Pricing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pricePerKg:
+                  type: number
+                  minimum: 0
+                active:
+                  type: boolean
+      responses:
+        '200':
+          description: Price updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyPrice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete daily price
+      description: Delete daily price (soft delete via active flag)
+      tags:
+        - Pricing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Price deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # THRESHOLDS
+  /thresholds:
+    get:
+      summary: List quality thresholds
+      description: Retrieve quality thresholds for all fruit types
+      tags:
+        - Quality
+      parameters:
+        - name: fruitTypeId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of thresholds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QualityThreshold'
+
+    post:
+      summary: Set quality threshold
+      description: Create or update quality threshold for fruit type
+      tags:
+        - Quality
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fruitTypeId
+                - metric
+                - thresholdPercent
+              properties:
+                fruitTypeId:
+                  type: integer
+                metric:
+                  type: string
+                  enum: [humedad, moho, violetas]
+                thresholdPercent:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                enabled:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Threshold created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityThreshold'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /thresholds/{id}:
+    put:
+      summary: Update quality threshold
+      description: Update existing threshold
+      tags:
+        - Quality
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                thresholdPercent:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: Threshold updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityThreshold'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete quality threshold
+      description: Delete threshold
+      tags:
+        - Quality
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Threshold deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # CUSTOMERS
+  /customers:
+    get:
+      summary: List cash customers
+      description: Retrieve list of cash customers
+      tags:
+        - Customers
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            description: Search by name or national ID
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CashCustomer'
+
+    post:
+      summary: Create customer
+      description: Create new cash customer
+      tags:
+        - Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - nationalId
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 160
+                nationalId:
+                  type: string
+                  minLength: 5
+                  maxLength: 32
+      responses:
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashCustomer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /customers/{id}:
+    get:
+      summary: Get customer
+      description: Retrieve customer by ID
+      tags:
+        - Customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashCustomer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update customer
+      description: Update customer information
+      tags:
+        - Customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 160
+                nationalId:
+                  type: string
+                  minLength: 5
+                  maxLength: 32
+      responses:
+        '200':
+          description: Customer updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashCustomer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete customer
+      description: Delete customer
+      tags:
+        - Customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Customer deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # FRUIT TYPES
+  /fruit-types:
+    get:
+      summary: List fruit types
+      description: Retrieve list of cash fruit types
+      tags:
+        - Fruit Types
+      responses:
+        '200':
+          description: List of fruit types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CashFruitType'
+
+    post:
+      summary: Create fruit type
+      description: Create new cash fruit type
+      tags:
+        - Fruit Types
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - name
+              properties:
+                code:
+                  type: string
+                  minLength: 2
+                  maxLength: 32
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 64
+                enabled:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Fruit type created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashFruitType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /fruit-types/{id}:
+    get:
+      summary: Get fruit type
+      description: Retrieve fruit type by ID
+      tags:
+        - Fruit Types
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Fruit type details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashFruitType'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update fruit type
+      description: Update fruit type
+      tags:
+        - Fruit Types
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 64
+                enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: Fruit type updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashFruitType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete fruit type
+      description: Delete fruit type
+      tags:
+        - Fruit Types
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Fruit type deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CashReception:
+      type: object
+      properties:
+        id:
+          type: integer
+        fruitTypeId:
+          type: integer
+        customerId:
+          type: integer
+        receptionDate:
+          type: string
+          format: date-time
+        containersCount:
+          type: integer
+        totalWeightKgOriginal:
+          type: number
+          format: float
+        pricePerKgSnapshot:
+          type: number
+          format: float
+        calidadHumedad:
+          type: number
+          format: float
+          nullable: true
+        calidadMoho:
+          type: number
+          format: float
+          nullable: true
+        calidadVioletas:
+          type: number
+          format: float
+          nullable: true
+        discountPercentTotal:
+          type: number
+          format: float
+        discountWeightKg:
+          type: number
+          format: float
+        totalWeightKgFinal:
+          type: number
+          format: float
+        grossAmount:
+          type: number
+          format: float
+        netAmount:
+          type: number
+          format: float
+        discountBreakdown:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        # Populated fields (from joins)
+        fruitType:
+          $ref: '#/components/schemas/CashFruitType'
+        customer:
+          $ref: '#/components/schemas/CashCustomer'
+
+    DailyPrice:
+      type: object
+      properties:
+        id:
+          type: integer
+        fruitTypeId:
+          type: integer
+        priceDate:
+          type: string
+          format: date
+        pricePerKg:
+          type: number
+          format: float
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        active:
+          type: boolean
+
+    QualityThreshold:
+      type: object
+      properties:
+        id:
+          type: integer
+        fruitTypeId:
+          type: integer
+        metric:
+          type: string
+          enum: [humedad, moho, violetas]
+        thresholdPercent:
+          type: number
+          format: float
+        enabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    CashCustomer:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        nationalId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+
+    CashFruitType:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        enabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        pages:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Invalid input data"
+            code: "VALIDATION_ERROR"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Authentication required"
+            code: "UNAUTHORIZED"
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Insufficient permissions"
+            code: "FORBIDDEN"
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Resource not found"
+            code: "NOT_FOUND"
+
+tags:
+  - name: Receptions
+    description: Cash reception management
+  - name: Pricing
+    description: Daily price management
+  - name: Quality
+    description: Quality threshold configuration
+  - name: Customers
+    description: Customer management
+  - name: Fruit Types
+    description: Fruit type catalog
+  - name: Invoices
+    description: Invoice generation

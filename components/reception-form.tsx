@@ -25,14 +25,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { createReception, updateReception } from "@/lib/actions/reception";
-import { Trash2, Plus } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import {
+  getPricingRules,
+  calculateReceptionPricing,
+  getDailyPrice,
+} from "@/lib/actions/pricing";
+import { Trash2, Plus, DollarSign, TrendingDown } from "lucide-react";
+import { formatCurrency } from "@/lib/utils/pricing";
+import type { QualityEvaluationData } from "@/lib/types/pricing";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useDailyReceptions } from "@/hooks/use-daily-receptions";
 import { LayoutToggle } from "@/components/layout-toggle";
 import { MobileDetailsList } from "@/components/mobile-details-list";
 import { SummaryCards } from "@/components/summary-cards";
 import { Keypad } from "@/components/ui/keypad";
+import { ProviderSearch } from "@/components/provider-search";
 
 interface Provider {
   id: string;
@@ -91,6 +105,7 @@ export function ReceptionForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [dailyPrice, setDailyPrice] = useState<number | null>(null);
 
   // Keypad state
   const [activeField, setActiveField] = useState<string | null>(null);
@@ -104,12 +119,74 @@ export function ReceptionForm({
     notes: reception?.notes || "",
   });
 
+  // Quality evaluation state for weight discounts
+  const [qualityData, setQualityData] = useState<QualityEvaluationData>({
+    moho: 0,
+    humedad: 0,
+    violetas: 0,
+  });
+
   const [details, setDetails] = useState<ReceptionDetail[]>(
     (existingDetails || []).map((d, index) => ({
       ...d,
       line_number: d.line_number || index + 1,
     })),
   );
+
+  // Reload reception data from server after save
+  const reloadReceptionData = async () => {
+    if (!isEditMode || !reception) return;
+
+    try {
+      console.log("🔄 Reloading reception data after save...");
+      const { getReceptionDetails } = await import("@/lib/actions/reception");
+      const result = await getReceptionDetails(reception.id);
+
+      if (result.reception) {
+        console.log("✅ Reloaded reception data:", result.reception);
+        loadExistingQualityData(result.reception);
+      }
+    } catch (error) {
+      console.error("❌ Error reloading reception data:", error);
+    }
+  };
+
+  // Load existing quality data for edit mode
+  const loadExistingQualityData = async (reception: any) => {
+    try {
+      console.log(
+        "🔄 Loading existing quality and discount data for reception:",
+        reception.id,
+      );
+
+      // Quality evaluation data - check both possible locations
+      const qe =
+        reception.quality_evaluation ||
+        (reception.quality_evaluations && reception.quality_evaluations[0]);
+
+      if (qe) {
+        const qualityData: QualityEvaluationData = {
+          moho: qe.moho || 0,
+          humedad: qe.humedad || 0,
+          violetas: qe.violetas || 0,
+        };
+
+        console.log("✅ Loaded quality data from prop:", qualityData);
+        setQualityData(qualityData);
+      } else {
+        console.log("⚠️ No existing quality data found");
+        // Set default quality data
+        setQualityData({
+          moho: 0,
+          humedad: 0,
+          violetas: 0,
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error loading existing quality data:", error);
+      // Don't fail the form load, just log the error
+    }
+  };
   const [currentDetail, setCurrentDetail] = useState({
     fruit_type_id: "",
     quantity: 0,
@@ -120,6 +197,11 @@ export function ReceptionForm({
   // Initialize form data when reception changes (for edit mode)
   useEffect(() => {
     if (isEditMode && reception) {
+      console.log(
+        "🔄 Edit mode: Initializing form data for reception:",
+        reception.id,
+      );
+
       setFormData({
         provider_id: reception.provider_id || "",
         driver_id: reception.driver_id || "",
@@ -128,6 +210,9 @@ export function ReceptionForm({
         total_containers: reception.total_containers || 0,
         notes: reception.notes || "",
       });
+
+      // Load existing quality data
+      loadExistingQualityData(reception);
     }
   }, [isEditMode, reception]);
 
@@ -169,9 +254,35 @@ export function ReceptionForm({
     }
   }, [formData.fruit_type_id]);
 
+  // Fetch daily price when fruit type changes
+  useEffect(() => {
+    const fetchDailyPrice = async () => {
+      if (formData.fruit_type_id) {
+        try {
+          const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+          const price = await getDailyPrice(formData.fruit_type_id, today);
+          setDailyPrice(price ? price.pricePerKg : null);
+        } catch (error) {
+          console.error("Error fetching daily price:", error);
+          setDailyPrice(null);
+        }
+      } else {
+        setDailyPrice(null);
+      }
+    };
+
+    fetchDailyPrice();
+  }, [formData.fruit_type_id]);
+
   const addDetail = () => {
     if (currentDetail.quantity <= 0 || currentDetail.weight_kg <= 0) {
       setError("Complete cantidad y peso del detalle");
+      return;
+    }
+
+    // Validate weight doesn't exceed database limit
+    if (currentDetail.weight_kg > 99999999.99) {
+      setError(`El peso no puede exceder 99,999,999.99 kg`);
       return;
     }
 
@@ -194,7 +305,10 @@ export function ReceptionForm({
   };
 
   const totalQuantity = details.reduce((sum, d) => sum + (d.quantity || 0), 0);
-  const totalWeight = details.reduce((sum, d) => sum + (Number(d.weight_kg) || 0), 0);
+  const totalWeight = details.reduce(
+    (sum, d) => sum + (Number(d.weight_kg) || 0),
+    0,
+  );
   const remainingContainers = formData.total_containers - totalQuantity;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -243,17 +357,25 @@ export function ReceptionForm({
     setLoading(true);
 
     let result;
+
     if (isEditMode && reception) {
+      console.log("🔄 Updating reception...");
       result = await updateReception(reception.id, {
         ...formData,
         details,
+        quality_data: qualityData,
+        total_weight: totalWeight,
+        discount_calculation: null,
       });
     } else {
+      console.log("➕ Creating new reception...");
       result = await createReception({
         ...formData,
         details,
       });
     }
+
+    console.log("📥 Reception result:", result);
 
     if (result.error) {
       setError(result.error);
@@ -261,10 +383,14 @@ export function ReceptionForm({
     } else {
       // Track reception locally for dashboard totals (running daily total)
       if (!isEditMode) {
+        // Use total weight
+        const finalWeight = totalWeight;
+
         addReception({
-          totalWeight: totalWeight,
+          totalWeight: finalWeight,
           totalQuantity: totalQuantity,
-          providerName: providers.find((p) => p.id === formData.provider_id)?.name,
+          providerName: providers.find((p) => p.id === formData.provider_id)
+            ?.name,
           truckPlate: formData.truck_plate,
         });
       }
@@ -272,11 +398,27 @@ export function ReceptionForm({
       setSuccess(
         `Recepción ${
           isEditMode ? "actualizada" : "creada"
-        } exitosamente: ${result.reception_number}`,
+        } exitosamente: ${result.reception?.reception_number || "desconocida"}`,
       );
-      setTimeout(() => {
-        router.push("/dashboard/reception");
-      }, 2000);
+
+      // Refresh router to ensure data is up-to-date
+      console.log("🔄 Refreshing page data after save...");
+      router.refresh();
+
+      // In edit mode, reload reception data to get updated quality values
+      if (isEditMode) {
+        setTimeout(async () => {
+          console.log("🔄 Reloading quality data in edit mode...");
+          await reloadReceptionData();
+        }, 500);
+      }
+
+      setTimeout(
+        () => {
+          router.push("/dashboard/reception");
+        },
+        isEditMode ? 2000 : 1000,
+      );
     }
   };
 
@@ -337,6 +479,48 @@ export function ReceptionForm({
           weight_kg: isNaN(newValue) ? 0 : newValue,
         });
       }
+    } else if (activeField === "moho") {
+      if (value === "clear") {
+        setQualityData({ ...qualityData, moho: 0 });
+      } else if (value === "backspace") {
+        const newValue = Math.floor(qualityData.moho / 10);
+        setQualityData({ ...qualityData, moho: newValue });
+      } else if (value !== "") {
+        const current = qualityData.moho;
+        const newValue = parseInt(`${current}${value}`);
+        setQualityData({
+          ...qualityData,
+          moho: Math.min(isNaN(newValue) ? 0 : newValue, 100), // Cap at 100
+        });
+      }
+    } else if (activeField === "humedad") {
+      if (value === "clear") {
+        setQualityData({ ...qualityData, humedad: 0 });
+      } else if (value === "backspace") {
+        const newValue = Math.floor(qualityData.humedad / 10);
+        setQualityData({ ...qualityData, humedad: newValue });
+      } else if (value !== "") {
+        const current = qualityData.humedad;
+        const newValue = parseInt(`${current}${value}`);
+        setQualityData({
+          ...qualityData,
+          humedad: Math.min(isNaN(newValue) ? 0 : newValue, 100), // Cap at 100
+        });
+      }
+    } else if (activeField === "violetas") {
+      if (value === "clear") {
+        setQualityData({ ...qualityData, violetas: 0 });
+      } else if (value === "backspace") {
+        const newValue = Math.floor(qualityData.violetas / 10);
+        setQualityData({ ...qualityData, violetas: newValue });
+      } else if (value !== "") {
+        const current = qualityData.violetas;
+        const newValue = parseInt(`${current}${value}`);
+        setQualityData({
+          ...qualityData,
+          violetas: Math.min(isNaN(newValue) ? 0 : newValue, 100), // Cap at 100
+        });
+      }
     }
   };
 
@@ -366,28 +550,16 @@ export function ReceptionForm({
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Provider and Driver Info - Mobile: Stack vertically, Desktop: 2-column grid */}
         <div className={`grid gap-4 ${!isMobile ? "md:grid-cols-2" : ""}`}>
-          <div className="space-y-2">
-            <Label htmlFor="provider">Proveedor *</Label>
-            <Select
-              value={formData.provider_id}
-              onValueChange={(value) =>
-                setFormData({ ...formData, provider_id: value })
-              }
-              disabled={loading}
-              required
-            >
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Seleccione proveedor" />
-              </SelectTrigger>
-              <SelectContent>
-                {providers.map((provider) => (
-                  <SelectItem key={provider.id} value={provider.id}>
-                    {provider.code} - {provider.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <ProviderSearch
+            providers={providers}
+            value={formData.provider_id}
+            onChange={(value) =>
+              setFormData({ ...formData, provider_id: value })
+            }
+            disabled={loading}
+            required
+            placeholder="Seleccione proveedor"
+          />
 
           <div className="space-y-2">
             <Label htmlFor="driver">Chofer *</Label>
@@ -650,6 +822,10 @@ export function ReceptionForm({
               remainingContainers={remainingContainers}
               layoutMode={layoutMode}
             />
+
+            {/* Quality Evaluation Section - Only for CAFÉ */}
+
+            {/* Enhanced Pricing Preview */}
           </div>
         )}
 

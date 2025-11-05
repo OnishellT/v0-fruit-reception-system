@@ -1,31 +1,31 @@
-# Implementation Plan: Post-Reception Quality Evaluation (Café Seco)
+# Implementation Plan: [FEATURE]
 
-**Branch**: `001-cafe-quality` | **Date**: 2025-10-31 | **Spec**: [link to spec.md]
-**Input**: Feature specification from `/specs/001-cafe-quality/spec.md`
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-Build a post-reception quality evaluation system for Café Seco that allows authorized users to record and manage quality attributes (Violetas, Humedad, Moho) for completed receptions. The system implements conditional UI buttons, role-based access control, data validation, and quality data persistence.
-
-**Technical Approach:**
-- Create `calidad_cafe` database table with proper RLS policies
-- Add server actions for quality data CRUD operations with Zod validation
-- Implement conditional button rendering in receptions table (visible only for Café Seco)
-- Build modal component for quality evaluation with role-based editing
-- Integrate with existing Receptions table and authentication system
-- Add quality indicators and visual feedback
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.0.2
-**Primary Dependencies**: Next.js 16+, React 19.2.0, Tailwind CSS, Supabase (PostgreSQL)
-**Storage**: Supabase PostgreSQL with Row Level Security (RLS)
-**Testing**: Playwright E2E testing framework (existing 18+ test files)
-**Target Platform**: Web application (Desktop/Mobile responsive)
-**Project Type**: single/web application - Next.js App Router architecture
-**Performance Goals**: Modal open/close <100ms, data persistence <500ms, build time <2 seconds
-**Constraints**: Must work with existing Spanish interface, role-based permissions (admin/operator), soft delete pattern
-**Scale/Scope**: ~50-200 quality evaluations per day, 2-10 concurrent users, existing database structure
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
+
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]  
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 
@@ -85,111 +85,57 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 
 ```text
-app/
-├── dashboard/
-│   └── reception/
-│       ├── page.tsx               # Modified: Add conditional quality button to table
-│       └── [id]/edit/
-│           └── page.tsx           # Modified: May need quality data display
-├── globals.css
-├── layout.tsx
-└── page.tsx
-
-lib/
-├── actions/
-│   ├── reception.ts               # Modified: Add quality-related server actions
-│   └── quality-cafe.ts            # NEW: Quality evaluation server actions
-├── supabase/
-│   └── [client files]
-└── utils.ts
-
-components/
-├── data-table.tsx                 # Modified: Add quality status indicators
-├── reception-form.tsx             # Modified: May need integration
-├── quality-evaluation-modal.tsx   # NEW: Quality evaluation modal component
-└── [other existing components]
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+src/
+├── models/
+├── services/
+├── cli/
+└── lib/
 
 tests/
-├── test-reception-*.js            # Modified: Add quality workflow tests
-├── test-quality-cafe.js           # NEW: Quality evaluation tests
-└── [other existing tests]
+├── contract/
+├── integration/
+└── unit/
+
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+backend/
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
+
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: Using Next.js App Router structure with Server Components as default and Client Components for interactive elements (modal, buttons). Server actions in `lib/actions/` for mutations, reusable components in `components/`, database integration via Supabase client.
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
 ## Complexity Tracking
 
-**No constitutional violations identified.**
+> **Fill ONLY if Constitution Check has violations that must be justified**
 
-All implementation decisions align with established constitutional principles:
-- Uses existing Next.js App Router architecture
-- Implements Server Components → Client Components pattern
-- Enforces role-based access control (admin/operator)
-- Uses Zod validation for type safety
-- Follows Spanish localization requirement
-- Implements proper RLS policies
-- Uses Server Actions for all mutations
-
-## Final Constitution Check (Post-Design Re-evaluation)
-
-*Re-checked after Phase 1 design completion*
-
-**Code Quality Standards:**
-- ✅ TypeScript strict mode maintained
-- ✅ Server-Client hybrid architecture (Server Components default, Client for modal)
-- ✅ Soft delete pattern (not applicable - quality tied to reception lifecycle)
-- ✅ Row Level Security (RLS) enforced on calidad_cafe table
-- ✅ Zod schemas for runtime type validation
-
-**Testing Standards (NON-NEGOTIABLE):**
-- ✅ Playwright E2E testing framework
-- ✅ Will add quality evaluation tests to reach 18+ total test files
-- ✅ 9/9 CRUD test pass rate maintained (no changes to existing CRUD)
-- ✅ Cross-browser testing compatibility
-
-**User Experience Consistency:**
-- ✅ Spanish interface maintained ("Registrar Calidad", "Ver Calidad", "Editar Calidad")
-- ✅ Modal follows responsive design pattern (Desktop/Mobile)
-- ✅ Real-time search (existing functionality)
-- ✅ Mobile keypad support (existing functionality)
-- ✅ Audit trail (created_by, updated_by fields)
-
-**Performance Requirements:**
-- ✅ Server-Side Rendering (receptions table)
-- ✅ Database queries optimized (index on recepcion_id)
-- ✅ Build time target maintained (<2 seconds)
-- ✅ Next.js App Router features utilized
-
-**Security Requirements:**
-- ✅ Custom session-based authentication (existing)
-- ✅ Server action validation (not client-side only)
-- ✅ HTTP-only secure cookies (existing)
-- ✅ Role-based access control (admin/operator enforced in actions)
-
-**Development Guidelines:**
-- ✅ Server component → Client component pattern (receptions table → modal)
-- ✅ Server actions for mutations (create/update quality)
-- ✅ All changes documented (research.md, data-model.md, contracts/, quickstart.md)
-- ✅ Backward compatibility (existing functionality unchanged)
-- ✅ Next.js 16+ best practices followed
-
----
-
-## Generated Artifacts
-
-**Phase 0 - Research**: ✅ COMPLETE
-- `research.md` - Technical decisions and rationale
-
-**Phase 1 - Design**: ✅ COMPLETE
-- `data-model.md` - Entity relationships and validation rules
-- `contracts/` - Server actions and component APIs
-- `quickstart.md` - Implementation guide
-- Agent context updated (`CLAUDE.md`)
-
----
-
-**Plan completed**: 2025-10-31
-**Status**: Ready for Phase 2 (Task Breakdown) via `/speckit.tasks`
-
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |

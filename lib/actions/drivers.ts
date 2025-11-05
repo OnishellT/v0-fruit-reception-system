@@ -1,31 +1,32 @@
 "use server";
 
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { drivers } from "@/lib/db/schema";
 import { revalidatePath } from "next/cache";
 import { getSession } from "./auth";
+import { eq, isNull, asc } from "drizzle-orm";
 
 export async function getDrivers() {
-  const supabase = await createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("drivers")
-    .select("*")
-    .is("deleted_at", null)
-    .order("name", { ascending: true });
+  const data = await db
+    .select()
+    .from(drivers)
+    .where(isNull(drivers.deletedAt))
+    .orderBy(asc(drivers.name));
 
-  if (error) throw error;
   return data;
 }
 
 export async function getDriver(id: string) {
-  const supabase = await createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("drivers")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const data = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.id, id))
+    .limit(1);
 
-  if (error) throw error;
-  return data;
+  if (data.length === 0) {
+    throw new Error("Driver not found");
+  }
+  return data[0];
 }
 
 export async function createDriver(formData: FormData) {
@@ -36,14 +37,11 @@ export async function createDriver(formData: FormData) {
   const license_number = formData.get("license_number") as string;
   const phone = formData.get("phone") as string;
 
-  const supabase = await createServiceRoleClient();
-  const { error } = await supabase.from("drivers").insert({
+  await db.insert(drivers).values({
     name,
-    license_number,
+    licenseNumber: license_number,
     phone,
   });
-
-  if (error) throw error;
 
   revalidatePath("/dashboard/choferes");
   return { success: true };
@@ -57,13 +55,10 @@ export async function updateDriver(id: string, formData: FormData) {
   const license_number = formData.get("license_number") as string;
   const phone = formData.get("phone") as string;
 
-  const supabase = await createServiceRoleClient();
-  const { error } = await supabase
-    .from("drivers")
-    .update({ name, license_number, phone })
-    .eq("id", id);
-
-  if (error) throw error;
+  await db
+    .update(drivers)
+    .set({ name, licenseNumber: license_number, phone })
+    .where(eq(drivers.id, id));
 
   revalidatePath("/dashboard/choferes");
   return { success: true };
@@ -73,13 +68,10 @@ export async function deleteDriver(id: string) {
   const session = await getSession();
   if (!session || session.role !== "admin") throw new Error("No autorizado");
 
-  const supabase = await createServiceRoleClient();
-  const { error } = await supabase
-    .from("drivers")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-
-  if (error) throw error;
+  await db
+    .update(drivers)
+    .set({ deletedAt: new Date() })
+    .where(eq(drivers.id, id));
 
   revalidatePath("/dashboard/choferes");
   return { success: true };

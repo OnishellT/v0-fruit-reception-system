@@ -1,25 +1,26 @@
 "use server"
 
-import { createServiceRoleClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
+import { certifications, providerCertifications } from "@/lib/db/schema"
 import { revalidatePath } from "next/cache"
 import { getSession } from "./auth"
+import { eq, asc, and } from "drizzle-orm"
 
 export async function getCertifications() {
-  const supabase = await createServiceRoleClient()
-  const { data, error } = await supabase.from("certifications").select("*").order("name", { ascending: true })
+  const data = await db
+    .select()
+    .from(certifications)
+    .orderBy(asc(certifications.name))
 
-  if (error) throw error
   return data
 }
 
 export async function getProviderCertifications(providerId: string) {
-  const supabase = await createServiceRoleClient()
-  const { data, error } = await supabase
-    .from("provider_certifications")
-    .select("*")
-    .eq("provider_id", providerId)
+  const data = await db
+    .select()
+    .from(providerCertifications)
+    .where(eq(providerCertifications.providerId, providerId))
 
-  if (error) throw error
   return data
 }
 
@@ -32,16 +33,13 @@ export async function addProviderCertification(providerId: string, formData: For
   const expiryDate = formData.get("expiry_date") as string
   const notes = formData.get("notes") as string
 
-  const supabase = await createServiceRoleClient()
-  const { error } = await supabase.from("provider_certifications").insert({
-    provider_id: providerId,
-    certification_id: certificationId,
-    issued_date: issuedDate || null,
-    expiry_date: expiryDate || null,
+  await db.insert(providerCertifications).values({
+    providerId,
+    certificationId,
+    issuedDate: issuedDate ? issuedDate : null,
+    expiryDate: expiryDate ? expiryDate : null,
     notes: notes || null,
   })
-
-  if (error) throw error
 
   revalidatePath(`/dashboard/proveedores/${providerId}`)
   return { success: true }
@@ -51,14 +49,12 @@ export async function removeProviderCertification(providerId: string, certificat
   const session = await getSession()
   if (!session) throw new Error("No autorizado")
 
-  const supabase = await createServiceRoleClient()
-  const { error } = await supabase
-    .from("provider_certifications")
-    .delete()
-    .eq("provider_id", providerId)
-    .eq("certification_id", certificationId)
-
-  if (error) throw error
+  await db
+    .delete(providerCertifications)
+    .where(and(
+      eq(providerCertifications.providerId, providerId),
+      eq(providerCertifications.certificationId, certificationId)
+    ))
 
   revalidatePath(`/dashboard/proveedores/${providerId}`)
   return { success: true }

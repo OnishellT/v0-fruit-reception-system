@@ -1,28 +1,37 @@
 "use server";
 
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { providers, asociaciones } from "@/lib/db/schema";
 import { revalidatePath } from "next/cache";
 import { getSession } from "./auth";
+import { eq, isNull, asc } from "drizzle-orm";
 
 export async function getProviders() {
   try {
-    const supabase = await createServiceRoleClient();
-
-    const { data, error } = await supabase
-      .from("providers")
-      .select(
-        `
-        *,
-        asociacion:asociaciones(id, code, name)
-      `,
-      )
-      .is("deleted_at", null)
-      .order("name", { ascending: true });
-
-    if (error) {
-      console.error("[v0] Error fetching providers:", error);
-      return { error: error.message, data: null, asociacionesAvailable: false };
-    }
+    const data = await db
+      .select({
+        id: providers.id,
+        code: providers.code,
+        name: providers.name,
+        contactPerson: providers.contactPerson,
+        phone: providers.phone,
+        address: providers.address,
+        isActive: providers.isActive,
+        createdAt: providers.createdAt,
+        updatedAt: providers.updatedAt,
+        createdBy: providers.createdBy,
+        asociacionId: providers.asociacionId,
+        deletedAt: providers.deletedAt,
+        asociacion: {
+          id: asociaciones.id,
+          code: asociaciones.code,
+          name: asociaciones.name,
+        },
+      })
+      .from(providers)
+      .leftJoin(asociaciones, eq(providers.asociacionId, asociaciones.id))
+      .where(isNull(providers.deletedAt))
+      .orderBy(asc(providers.name));
 
     return { data, error: null, asociacionesAvailable: true };
   } catch (error: any) {
@@ -32,16 +41,16 @@ export async function getProviders() {
 }
 
 export async function getProvider(id: string) {
-  const supabase = await createServiceRoleClient();
+  const data = await db
+    .select()
+    .from(providers)
+    .where(eq(providers.id, id))
+    .limit(1);
 
-  const { data, error } = await supabase
-    .from("providers")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error) throw error;
-  return data;
+  if (data.length === 0) {
+    throw new Error("Provider not found");
+  }
+  return data[0];
 }
 
 export async function createProvider(formData: FormData) {
@@ -55,17 +64,19 @@ export async function createProvider(formData: FormData) {
   const address = formData.get("address") as string;
   const asociacionId = formData.get("asociacion_id") as string;
 
-  const supabase = await createServiceRoleClient();
-  const { error } = await supabase.from("providers").insert({
-    name,
-    code,
-    contact_person: contact,
-    phone,
-    address,
-    asociacion_id: asociacionId === "none" ? null : asociacionId,
-  });
+  try {
+    await db.insert(providers).values({
+      name,
+      code,
+      contactPerson: contact,
+      phone,
+      address,
+      asociacionId: asociacionId === "none" ? null : asociacionId,
+    });
 
-  if (error) {
+    revalidatePath("/dashboard/proveedores");
+    return { success: true };
+  } catch (error: any) {
     if (error.code === "23505") {
       throw new Error(
         `El código de proveedor "${code}" ya existe. Por favor use un código diferente.`,
@@ -73,9 +84,6 @@ export async function createProvider(formData: FormData) {
     }
     throw error;
   }
-
-  revalidatePath("/dashboard/proveedores");
-  return { success: true };
 }
 
 export async function updateProvider(id: string, formData: FormData) {
@@ -89,20 +97,23 @@ export async function updateProvider(id: string, formData: FormData) {
   const address = formData.get("address") as string;
   const asociacionId = formData.get("asociacion_id") as string;
 
-  const supabase = await createServiceRoleClient();
-  const { error } = await supabase
-    .from("providers")
-    .update({
-      name,
-      code,
-      contact_person: contact,
-      phone,
-      address,
-      asociacion_id: asociacionId === "none" ? null : asociacionId,
-    })
-    .eq("id", id);
+  try {
+    await db
+      .update(providers)
+      .set({
+        name,
+        code,
+        contactPerson: contact,
+        phone,
+        address,
+        asociacionId: asociacionId === "none" ? null : asociacionId,
+      })
+      .where(eq(providers.id, id));
 
-  if (error) {
+    revalidatePath("/dashboard/proveedores");
+    revalidatePath(`/dashboard/proveedores/${id}`);
+    return { success: true };
+  } catch (error: any) {
     if (error.code === "23505") {
       throw new Error(
         `El código de proveedor "${code}" ya existe. Por favor use un código diferente.`,
@@ -110,23 +121,16 @@ export async function updateProvider(id: string, formData: FormData) {
     }
     throw error;
   }
-
-  revalidatePath("/dashboard/proveedores");
-  revalidatePath(`/dashboard/proveedores/${id}`);
-  return { success: true };
 }
 
 export async function deleteProvider(id: string) {
   const session = await getSession();
   if (!session || session.role !== "admin") throw new Error("No autorizado");
 
-  const supabase = await createServiceRoleClient();
-  const { error } = await supabase
-    .from("providers")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-
-  if (error) throw error;
+  await db
+    .update(providers)
+    .set({ deletedAt: new Date() })
+    .where(eq(providers.id, id));
 
   revalidatePath("/dashboard/proveedores");
   return { success: true };

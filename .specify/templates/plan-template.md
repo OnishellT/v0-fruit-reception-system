@@ -31,44 +31,7 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Code Quality Standards:**
-- ✅ TypeScript strict mode enabled (100% type safety)
-- ✅ Server-Client hybrid architecture (Next.js App Router with Server Components default)
-- ✅ Soft delete pattern implemented for all data operations
-- ✅ Row Level Security (RLS) enforced on all database tables
-- ✅ Zod schemas for runtime type validation
-
-**Testing Standards (NON-NEGOTIABLE):**
-- ✅ Playwright E2E testing framework configured
-- ✅ Minimum 18+ test files maintained
-- ✅ 9/9 CRUD test pass rate requirement
-- ✅ Cross-browser testing (Chrome, Firefox, Safari, Edge) planned
-
-**User Experience Consistency:**
-- ✅ Spanish localization maintained throughout
-- ✅ Responsive design (Desktop/Mobile/Auto layout toggle)
-- ✅ Real-time search across all data tables
-- ✅ On-screen keypad support for mobile devices
-- ✅ Audit trail logging for all critical actions
-
-**Performance Requirements:**
-- ✅ Server-Side Rendering (SSR) as default strategy
-- ✅ Database queries optimized with proper indexing
-- ✅ Build time target: under 2 seconds
-- ✅ Next.js App Router features utilized
-
-**Security Requirements:**
-- ✅ Custom session-based authentication (NOT Supabase Auth)
-- ✅ bcrypt password hashing implemented
-- ✅ HTTP-only secure cookies with proper configuration
-- ✅ Role-based access control (RBAC) for admin/operator roles
-
-**Development Guidelines:**
-- ✅ Server component → Client component pattern followed
-- ✅ Server actions used for all mutations (create, update, delete)
-- ✅ All changes documented in markdown files
-- ✅ Backward compatibility maintained where possible
-- ✅ Next.js 16+ best practices followed
+[Gates determined based on constitution file]
 
 ## Project Structure
 

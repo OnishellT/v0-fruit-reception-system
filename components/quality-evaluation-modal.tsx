@@ -1,14 +1,14 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { QualityEvaluationModalProps, QualityFormData } from "@/types/quality-cafe";
-import { createQualityEvaluation, updateQualityEvaluation } from "@/lib/actions/quality-cafe";
+import type { QualityEvaluationModalProps, QualityFormData } from "@/lib/types/quality-universal";
+import { createQualityEvaluation, updateQualityEvaluation, getQualityEvaluation } from "@/lib/actions/quality-universal";
 import { createQualitySchema, updateQualitySchema } from "@/lib/utils/quality-validations";
 
 export function QualityEvaluationModal({
@@ -31,12 +31,48 @@ export function QualityEvaluationModal({
 
   // Form state
   const [formData, setFormData] = useState<QualityFormData>({
-    violetas: existingQuality?.violetas?.toString() || "",
-    humedad: existingQuality?.humedad?.toString() || "",
-    moho: existingQuality?.moho?.toString() || "",
+    violetas: "",
+    humedad: "",
+    moho: "",
   });
 
-  const isReadOnly = userRole !== "admin" || (existingQuality && userRole !== "admin");
+  // Initialize form data when modal opens - fetch fresh quality data from server
+  useEffect(() => {
+    const loadQualityData = async () => {
+      if (isOpen && recepcionId) {
+        console.log('🔄 Quality modal: Fetching fresh quality data for reception:', recepcionId);
+        try {
+          // Always fetch fresh quality data from server to ensure we have the latest values
+          const result = await getQualityEvaluation(recepcionId);
+          const latestQuality = result.success ? result.data : null;
+          console.log('🔄 Quality modal: Fetched quality data:', latestQuality);
+
+          setFormData({
+            violetas: latestQuality?.violetas?.toString() || "",
+            humedad: latestQuality?.humedad?.toString() || "",
+            moho: latestQuality?.moho?.toString() || "",
+          });
+        } catch (error) {
+          console.error('❌ Error fetching quality data:', error);
+          // Fallback to props if fetch fails
+          setFormData({
+            violetas: existingQuality?.violetas?.toString() || "",
+            humedad: existingQuality?.humedad?.toString() || "",
+            moho: existingQuality?.moho?.toString() || "",
+          });
+        }
+      }
+    };
+
+    loadQualityData();
+  }, [isOpen, recepcionId]); // Re-fetch when modal opens or reception changes
+
+  // Reset errors when modal opens/closes
+  useEffect(() => {
+    setErrors({});
+  }, [isOpen]);
+
+  const isReadOnly = userRole !== "admin" || (existingQuality !== null && userRole !== "admin");
 
   const handleInputChange = (field: keyof QualityFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -119,10 +155,15 @@ export function QualityEvaluationModal({
         return;
       }
 
+      console.log('✅ Quality evaluation saved successfully, refreshing page...');
       // Success - close modal and refresh
       if (onSaved) onSaved();
       if (onClose) onClose();
-      router.refresh();
+
+      // Small delay to ensure server action completes before refresh
+      setTimeout(() => {
+        router.refresh();
+      }, 100);
     } catch (error: any) {
       setErrors({ general: "Error inesperado. Por favor intente nuevamente." });
     } finally {
@@ -140,7 +181,7 @@ export function QualityEvaluationModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Evaluación de Calidad — Café Seco</DialogTitle>
+          <DialogTitle>Evaluación de Calidad — {reception.fruit_type}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Reception info */}

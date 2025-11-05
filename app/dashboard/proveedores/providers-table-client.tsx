@@ -65,7 +65,7 @@ export default function ProvidersTableClient({
             label: "Asociación",
             sortable: true,
             searchable: true,
-            render: (_, row) =>
+            render: (_: any, row: any) =>
               row.asociacion ? (
                 <Badge variant="outline">{row.asociacion.name}</Badge>
               ) : (

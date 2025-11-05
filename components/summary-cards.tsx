@@ -19,23 +19,23 @@ export function SummaryCards({
   if (layoutMode === "desktop") {
     return (
       <div className="flex gap-4 text-sm">
-        <div className="flex-1 p-3 bg-blue-50 rounded-lg">
-          <p className="text-gray-600">Contenedores Esperados</p>
-          <p className="text-2xl font-bold text-blue-600">
+        <div className="flex-1 p-3 bg-accent/50 rounded-lg">
+          <p className="text-muted-foreground">Contenedores Esperados</p>
+          <p className="text-2xl font-bold text-primary">
             {totalContainers}
           </p>
         </div>
-        <div className="flex-1 p-3 bg-green-50 rounded-lg">
-          <p className="text-gray-600">Contenedores Registrados</p>
-          <p className="text-2xl font-bold text-green-600">
+        <div className="flex-1 p-3 bg-accent/50 rounded-lg">
+          <p className="text-muted-foreground">Contenedores Registrados</p>
+          <p className="text-2xl font-bold text-primary">
             {totalQuantity}
           </p>
         </div>
-        <div className="flex-1 p-3 bg-orange-50 rounded-lg">
-          <p className="text-gray-600">Contenedores Restantes</p>
+        <div className="flex-1 p-3 bg-accent/50 rounded-lg">
+          <p className="text-muted-foreground">Contenedores Restantes</p>
           <p
             className={`text-2xl font-bold ${
-              remainingContainers === 0 ? "text-green-600" : "text-orange-600"
+              remainingContainers === 0 ? "text-green-600" : "text-primary"
             }`}
           >
             {remainingContainers}
@@ -52,31 +52,31 @@ export function SummaryCards({
         Resumen
       </h4>
       <div className="grid gap-3">
-        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">
+        <div className="p-4 bg-accent/50 rounded-lg border border-border">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
             Contenedores Esperados
           </p>
-          <p className="text-3xl font-bold text-blue-700 mt-1">
+          <p className="text-3xl font-bold text-primary mt-1">
             {totalContainers}
           </p>
         </div>
 
-        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-          <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">
+        <div className="p-4 bg-accent/50 rounded-lg border border-border">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
             Contenedores Registrados
           </p>
-          <p className="text-3xl font-bold text-green-700 mt-1">
+          <p className="text-3xl font-bold text-primary mt-1">
             {totalQuantity}
           </p>
         </div>
 
-        <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-          <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">
+        <div className="p-4 bg-accent/50 rounded-lg border border-border">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
             Contenedores Restantes
           </p>
           <p
             className={`text-3xl font-bold mt-1 ${
-              remainingContainers === 0 ? "text-green-700" : "text-orange-700"
+              remainingContainers === 0 ? "text-green-600" : "text-primary"
             }`}
           >
             {remainingContainers}

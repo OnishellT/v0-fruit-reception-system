@@ -26,7 +26,7 @@ export default async function AuditPage() {
   if (logsResult.error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-foreground">
           Auditoría del Sistema
         </h1>
         <Card>
@@ -45,10 +45,10 @@ export default async function AuditPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-foreground">
           Auditoría del Sistema
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-muted-foreground mt-2">
           Registro de todas las acciones realizadas en el sistema
         </p>
       </div>

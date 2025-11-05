@@ -31,6 +31,7 @@ const DailyReceptionsContext = createContext<{
 export function DailyReceptionsProvider({ children }: { children: ReactNode }) {
   const [receptions, setReceptions] = useState<DailyReception[]>([]);
   const isUpdatingRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get today's date in YYYY-MM-DD format
   const getTodayString = () => {
@@ -112,6 +113,10 @@ export function DailyReceptionsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isUpdatingRef.current) return;
 
+    const timeoutId = setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 100);
+
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       const allReceptions = stored ? JSON.parse(stored) : [];
@@ -129,15 +134,16 @@ export function DailyReceptionsProvider({ children }: { children: ReactNode }) {
       isUpdatingRef.current = true;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       console.log("✅ Saved successfully");
-
-      // Reset flag after a short delay
-      setTimeout(() => {
-        isUpdatingRef.current = false;
-      }, 100);
     } catch (error) {
       console.error("❌ Error saving daily receptions:", error);
       isUpdatingRef.current = false;
+      clearTimeout(timeoutId);
     }
+
+    // Cleanup timeout on unmount or when effect runs again
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [receptions]);
 
   // Listen for storage changes (in case localStorage is updated in another tab)

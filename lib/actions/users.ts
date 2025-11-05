@@ -1,9 +1,11 @@
 "use server"
 
-import { createServiceRoleClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
 import { getSession } from "@/lib/actions/auth"
 import { hashPassword } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
+import { users, auditLogs } from "@/lib/db/schema"
+import { eq, desc } from "drizzle-orm"
 
 export async function getUsers() {
   const session = await getSession()
@@ -12,18 +14,23 @@ export async function getUsers() {
     return { error: "No autorizado" }
   }
 
-  const supabase = await createServiceRoleClient()
+  try {
+    const userData = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        fullName: users.fullName,
+        role: users.role,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .orderBy(desc(users.createdAt))
 
-  const { data: users, error } = await supabase
-    .from("users")
-    .select("id, username, full_name, role, is_active, created_at")
-    .order("created_at", { ascending: false })
-
-  if (error) {
+    return { users: userData }
+  } catch (error) {
     return { error: "Error al obtener usuarios" }
   }
-
-  return { users }
 }
 
 export async function createUser(formData: {
@@ -38,47 +45,48 @@ export async function createUser(formData: {
     return { error: "No autorizado" }
   }
 
-  const supabase = await createServiceRoleClient()
+  try {
+    // Check if username already exists
+    const existingUser = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.username, formData.username))
+      .limit(1)
 
-  // Check if username already exists
-  const { data: existingUser } = await supabase.from("users").select("id").eq("username", formData.username).single()
+    if (existingUser.length > 0) {
+      return { error: "El nombre de usuario ya existe" }
+    }
 
-  if (existingUser) {
-    return { error: "El nombre de usuario ya existe" }
-  }
+    // Hash password
+    const password_hash = await hashPassword(formData.password)
 
-  // Hash password
-  const password_hash = await hashPassword(formData.password)
+    // Create user
+    const newUser = await db
+      .insert(users)
+      .values({
+        username: formData.username,
+        passwordHash: password_hash,
+        fullName: formData.full_name,
+        role: formData.role,
+        isActive: true,
+        createdBy: session.id,
+      })
+      .returning()
 
-  // Create user
-  const { data: newUser, error } = await supabase
-    .from("users")
-    .insert({
-      username: formData.username,
-      password_hash,
-      full_name: formData.full_name,
-      role: formData.role,
-      is_active: true,
-      created_by: session.id,
+    // Log the action
+    await db.insert(auditLogs).values({
+      userId: session.id,
+      action: "create_user",
+      tableName: "users",
+      recordId: newUser[0].id,
+      newValues: { username: formData.username, role: formData.role },
     })
-    .select()
-    .single()
 
-  if (error) {
+    revalidatePath("/dashboard/users")
+    return { success: true }
+  } catch (error) {
     return { error: "Error al crear usuario" }
   }
-
-  // Log the action
-  await supabase.from("audit_logs").insert({
-    user_id: session.id,
-    action: "create_user",
-    table_name: "users",
-    record_id: newUser.id,
-    new_values: { username: formData.username, role: formData.role },
-  })
-
-  revalidatePath("/dashboard/users")
-  return { success: true }
 }
 
 export async function updateUser(userId: string, formData: { full_name: string; role: "admin" | "operator" }) {
@@ -88,30 +96,38 @@ export async function updateUser(userId: string, formData: { full_name: string; 
     return { error: "No autorizado" }
   }
 
-  const supabase = await createServiceRoleClient()
+  try {
+    // Get old values for audit
+    const oldUser = await db
+      .select({ fullName: users.fullName, role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
 
-  // Get old values for audit
-  const { data: oldUser } = await supabase.from("users").select("full_name, role").eq("id", userId).single()
+    // Update user
+    await db
+      .update(users)
+      .set({
+        fullName: formData.full_name,
+        role: formData.role,
+      })
+      .where(eq(users.id, userId))
 
-  // Update user
-  const { error } = await supabase.from("users").update(formData).eq("id", userId)
+    // Log the action
+    await db.insert(auditLogs).values({
+      userId: session.id,
+      action: "update_user",
+      tableName: "users",
+      recordId: userId,
+      oldValues: oldUser[0] || null,
+      newValues: formData,
+    })
 
-  if (error) {
+    revalidatePath("/dashboard/users")
+    return { success: true }
+  } catch (error) {
     return { error: "Error al actualizar usuario" }
   }
-
-  // Log the action
-  await supabase.from("audit_logs").insert({
-    user_id: session.id,
-    action: "update_user",
-    table_name: "users",
-    record_id: userId,
-    old_values: oldUser,
-    new_values: formData,
-  })
-
-  revalidatePath("/dashboard/users")
-  return { success: true }
 }
 
 export async function toggleUserStatus(userId: string, isActive: boolean) {
@@ -121,22 +137,23 @@ export async function toggleUserStatus(userId: string, isActive: boolean) {
     return { error: "No autorizado" }
   }
 
-  const supabase = await createServiceRoleClient()
+  try {
+    await db
+      .update(users)
+      .set({ isActive })
+      .where(eq(users.id, userId))
 
-  const { error } = await supabase.from("users").update({ is_active: isActive }).eq("id", userId)
+    // Log the action
+    await db.insert(auditLogs).values({
+      userId: session.id,
+      action: isActive ? "activate_user" : "deactivate_user",
+      tableName: "users",
+      recordId: userId,
+    })
 
-  if (error) {
+    revalidatePath("/dashboard/users")
+    return { success: true }
+  } catch (error) {
     return { error: "Error al actualizar estado del usuario" }
   }
-
-  // Log the action
-  await supabase.from("audit_logs").insert({
-    user_id: session.id,
-    action: isActive ? "activate_user" : "deactivate_user",
-    table_name: "users",
-    record_id: userId,
-  })
-
-  revalidatePath("/dashboard/users")
-  return { success: true }
 }

@@ -1,32 +1,32 @@
 "use server";
 
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { fruitTypes } from "@/lib/db/schema";
 import { revalidatePath } from "next/cache";
 import { getSession } from "./auth";
+import { eq, isNull, asc } from "drizzle-orm";
 
 export async function getFruitTypes() {
-  const supabase = await createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("fruit_types")
-    .select("*")
-    .is("deleted_at", null)
-    .order("type", { ascending: true })
-    .order("subtype", { ascending: true });
+  const data = await db
+    .select()
+    .from(fruitTypes)
+    .where(isNull(fruitTypes.deletedAt))
+    .orderBy(asc(fruitTypes.type), asc(fruitTypes.subtype));
 
-  if (error) throw error;
   return data;
 }
 
 export async function getFruitType(id: string) {
-  const supabase = await createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("fruit_types")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const data = await db
+    .select()
+    .from(fruitTypes)
+    .where(eq(fruitTypes.id, id))
+    .limit(1);
 
-  if (error) throw error;
-  return data;
+  if (data.length === 0) {
+    throw new Error("Fruit type not found");
+  }
+  return data[0];
 }
 
 export async function createFruitType(formData: FormData) {
@@ -36,13 +36,10 @@ export async function createFruitType(formData: FormData) {
   const type = formData.get("type") as string;
   const subtype = formData.get("subtype") as string;
 
-  const supabase = await createServiceRoleClient();
-  const { error } = await supabase.from("fruit_types").insert({
+  await db.insert(fruitTypes).values({
     type,
     subtype,
   });
-
-  if (error) throw error;
 
   revalidatePath("/dashboard/tipos-fruto");
   return { success: true };
@@ -56,13 +53,10 @@ export async function updateFruitType(id: string, formData: FormData) {
   const subtype = formData.get("subtype") as string;
   const description = formData.get("description") as string;
 
-  const supabase = await createServiceRoleClient();
-  const { error } = await supabase
-    .from("fruit_types")
-    .update({ type, subtype, description })
-    .eq("id", id);
-
-  if (error) throw error;
+  await db
+    .update(fruitTypes)
+    .set({ type, subtype, description })
+    .where(eq(fruitTypes.id, id));
 
   revalidatePath("/dashboard/tipos-fruto");
   return { success: true };
@@ -72,13 +66,10 @@ export async function deleteFruitType(id: string) {
   const session = await getSession();
   if (!session || session.role !== "admin") throw new Error("No autorizado");
 
-  const supabase = await createServiceRoleClient();
-  const { error } = await supabase
-    .from("fruit_types")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-
-  if (error) throw error;
+  await db
+    .update(fruitTypes)
+    .set({ deletedAt: new Date() })
+    .where(eq(fruitTypes.id, id));
 
   revalidatePath("/dashboard/tipos-fruto");
   return { success: true };

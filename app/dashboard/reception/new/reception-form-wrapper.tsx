@@ -1,6 +1,7 @@
 "use client";
 
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { DailyReceptionsProvider } from "@/hooks/use-daily-receptions";
 import { ReceptionForm } from "@/components/reception-form";
 
 export function ReceptionFormWrapper({
@@ -15,11 +16,13 @@ export function ReceptionFormWrapper({
   const { effectiveLayout } = useUserPreferences();
   // Force re-render when layout changes by using layout as key
   return (
-    <ReceptionForm
-      key={`${effectiveLayout}-new`}
-      providers={providers}
-      drivers={drivers}
-      fruitTypes={fruitTypes}
-    />
+    <DailyReceptionsProvider>
+      <ReceptionForm
+        key={`${effectiveLayout}-new`}
+        providers={providers}
+        drivers={drivers}
+        fruitTypes={fruitTypes}
+      />
+    </DailyReceptionsProvider>
   );
 }

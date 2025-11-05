@@ -74,6 +74,102 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* Print styles for invoices */
+@media print {
+  body {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure invoice content takes full width */
+  .max-w-4xl {
+    max-width: none !important;
+  }
+
+  /* Hide browser UI elements */
+  @page {
+    margin: 0.5in;
+    size: A4;
+  }
+
+  /* Make cards have proper borders for printing */
+  .border {
+    border: 1px solid #000 !important;
+  }
+
+  .border-b {
+    border-bottom: 1px solid #000 !important;
+  }
+
+  .border-t {
+    border-top: 1px solid #000 !important;
+  }
+
+  .border-b-2 {
+    border-bottom: 2px solid #000 !important;
+  }
+
+  .border-t-2 {
+    border-top: 2px solid #000 !important;
+  }
+
+  /* Ensure text is black for printing */
+  * {
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* Make sure tables print properly */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    border: 1px solid #000;
+    padding: 8px;
+  }
+
+  /* Hide layout elements */
+  nav, aside, header, footer, .sidebar, .navigation, .navbar {
+    display: none !important;
+  }
+
+  /* Hide specific sidebar */
+  #responsive-sidebar {
+    display: none !important;
+  }
+
+  /* Hide any interactive elements */
+  button, input, select, textarea {
+    display: none !important;
+  }
+
+  /* Hide modal overlays and backgrounds */
+  .fixed, .absolute {
+    position: static !important;
+  }
+
+  /* Hide background overlays */
+  [class*="bg-black"], [class*="bg-opacity"] {
+    background: white !important;
+  }
+
+  /* Show print-only content */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Hide elements with no-print class */
+  .no-print {
+    display: none !important;
+  }
+}
+
 @theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';

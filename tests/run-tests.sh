@@ -74,8 +74,8 @@ run_auth_tests() {
     print_status "Running authentication tests..."
     echo ""
 
-    if [ -f "tests/test-auth.js" ]; then
-        node tests/test-auth.js
+    if [ -f "tests/automated/test-auth.js" ]; then
+        node tests/automated/test-auth.js
         AUTH_RESULT=$?
 
         if [ $AUTH_RESULT -eq 0 ]; then
@@ -97,8 +97,8 @@ run_comprehensive_tests() {
     print_status "Running comprehensive test suite..."
     echo ""
 
-    if [ -f "tests/test-complete.js" ]; then
-        node tests/test-complete.js
+    if [ -f "tests/debug/test-complete.js" ]; then
+        node tests/debug/test-complete.js
         COMPREHENSIVE_RESULT=$?
 
         if [ $COMPREHENSIVE_RESULT -eq 0 ]; then

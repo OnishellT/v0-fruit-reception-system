@@ -16,10 +16,12 @@ export function CreateAsociacionForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setSuccess(false);
     setLoading(true);
 
     try {
@@ -31,8 +33,12 @@ export function CreateAsociacionForm() {
         return;
       }
 
-      router.push("/dashboard/asociaciones");
-      router.refresh();
+      setSuccess(true);
+      // Brief delay to show success message before redirect
+      setTimeout(() => {
+        router.push("/dashboard/asociaciones");
+        router.refresh();
+      }, 1500);
     } catch (error: any) {
       setError(error.message || "Error desconocido");
     } finally {
@@ -51,21 +57,41 @@ export function CreateAsociacionForm() {
             {error}
           </div>
         )}
+        {success && (
+          <div className="bg-green-50 text-green-800 px-4 py-3 rounded-md mb-4 border border-green-200">
+            ✅ Asociación creada exitosamente. Redirigiendo...
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="code">Código *</Label>
-              <Input id="code" name="code" required />
+              <Input
+                id="code"
+                name="code"
+                required
+                disabled={loading || success}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="name">Nombre *</Label>
-              <Input id="name" name="name" required />
+              <Input
+                id="name"
+                name="name"
+                required
+                disabled={loading || success}
+              />
             </div>
 
             <div className="space-y-2 col-span-2">
               <Label htmlFor="description">Descripción</Label>
-              <Textarea id="description" name="description" rows={3} />
+              <Textarea
+                id="description"
+                name="description"
+                rows={3}
+                disabled={loading || success}
+              />
             </div>
           </div>
 
@@ -74,12 +100,13 @@ export function CreateAsociacionForm() {
               type="button"
               variant="outline"
               onClick={() => router.back()}
+              disabled={loading || success}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Creando..." : "Crear Asociación"}
+            <Button type="submit" disabled={loading || success}>
+              {loading ? "Creando..." : success ? "Creada exitosamente" : "Crear Asociación"}
             </Button>
           </div>
         </form>

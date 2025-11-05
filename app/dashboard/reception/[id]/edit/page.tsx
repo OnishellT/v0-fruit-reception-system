@@ -1,27 +1,14 @@
-import {
-  getReceptionDetails,
-} from "@/lib/actions/reception";
-import {
-  getProviders,
-} from "@/lib/actions/providers";
-import {
-  getDrivers,
-} from "@/lib/actions/drivers";
-import {
-  getFruitTypes,
-} from "@/lib/actions/fruit-types";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { getReceptionDetails } from "@/lib/actions/reception";
+import { getReceptionPricing, calculatePricingForExistingReception } from "@/lib/actions/reception-with-pricing";
+import { getDiscountBreakdown } from "@/lib/actions/pricing";
+import { getProviders } from "@/lib/actions/providers";
+import { getDrivers } from "@/lib/actions/drivers";
+import { getFruitTypes } from "@/lib/actions/fruit-types";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ReceptionForm } from "@/components/reception-form";
+
+import { ReceptionEditClient } from "./reception-edit-client";
 
 export default async function EditReceptionPage({
   params,
@@ -39,79 +26,96 @@ export default async function EditReceptionPage({
 
   if (result.error || !result.reception) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">Editar Recepción</h1>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-red-600">
-              {result.error || "Recepción no encontrada"}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard/reception">
+              <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+                Volver
+              </button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Editar Recepción</h1>
+              <p className="text-muted-foreground mt-1">Error al cargar la recepción</p>
+            </div>
+          </div>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-red-600">
+            {result.error || "Recepción no encontrada"}
+          </p>
+        </div>
       </div>
     );
   }
 
-  const { reception, details } = result;
+  const { reception, details = [] } = result;
 
-  // Get dropdown options
-  const [providersResult, driversResult, fruitTypesResult] = await Promise.all([
+  // Get pricing calculation if it exists
+  let pricingResult = await getReceptionPricing(id);
+  let pricingCalculation = pricingResult.success ? pricingResult.data : null;
+
+  // Always recalculate pricing on the fly using current final weight for edit form
+  if (reception.total_peso_final && reception.total_peso_final > 0) {
+    console.log("Recalculating pricing on the fly for edit form...");
+    const autoPricingResult = await calculatePricingForExistingReception(id);
+    if (autoPricingResult.success) {
+      console.log("Successfully recalculated pricing for edit form");
+      // Re-fetch the updated pricing calculation
+      pricingResult = await getReceptionPricing(id);
+      pricingCalculation = pricingResult.success ? pricingResult.data : null;
+    } else {
+      console.log("Failed to recalculate pricing for edit form:", autoPricingResult.error);
+    }
+  }
+
+  // Get discount breakdown if it exists
+  const discountResult = await getDiscountBreakdown(id);
+  const discountCalculation = discountResult.success
+    ? discountResult.data
+    : null;
+
+  // Get dropdown options for the client component
+  const [providersResult, driversData, fruitTypesResult] = await Promise.all([
     getProviders(),
     getDrivers(),
     getFruitTypes(),
   ]);
 
-  if (providersResult.error || driversResult.error || fruitTypesResult.error) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">Editar Recepción</h1>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-red-600">Error al cargar datos necesarios</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const providers = providersResult.error ? [] : providersResult.data || [];
+  const drivers = driversData || [];
+  const fruitTypes = fruitTypesResult || [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/reception">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Editar Recepción</h1>
-          <p className="text-gray-600 mt-1">{reception.reception_number}</p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/reception">
+            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+              Volver
+            </button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Editar Recepción</h1>
+            <p className="text-muted-foreground mt-1">{reception.reception_number}</p>
+          </div>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos de Recepción</CardTitle>
-          <CardDescription>Modifique los campos necesarios</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ReceptionForm
-            providers={providersResult.data || []}
-            drivers={driversResult || []}
-            fruitTypes={fruitTypesResult || []}
-            reception={reception}
-            details={
-              details?.map((d) => ({
-                id: d.id,
-                fruit_type_id: d.fruit_type_id,
-                quantity: d.quantity,
-                weight_kg: d.weight_kg,
-                line_number: d.line_number,
-              })) || []
-            }
-          />
-        </CardContent>
-      </Card>
+      <ReceptionEditClient
+        receptionId={id}
+        reception={reception}
+        details={details}
+        pricingCalculation={pricingCalculation}
+        discountCalculation={discountCalculation}
+        providers={providers}
+        drivers={drivers}
+        fruitTypes={fruitTypes}
+      />
     </div>
   );
 }
+
+

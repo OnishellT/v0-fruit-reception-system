@@ -28,3 +28,13 @@ Continue building your app on:
 2. Deploy your chats from the v0 interface
 3. Changes are automatically pushed to this repository
 4. Vercel deploys the latest version from this repository
+
+## Cacao Processing Module
+
+This module introduces functionality for managing cacao processing batches and laboratory samples. Key features include:
+
+*   **Laboratory Sample Management**: Create and track laboratory samples from cacao receptions, record drying processes, and input final quality results.
+*   **Batch Creation and Processing**: Group multiple wet cacao receptions into single drying or fermentation batches, track their lifecycle, and monitor progress.
+*   **Batch Result Input and Distribution**: Input final dried weights for completed batches, with automatic proportional distribution across all included receptions.
+
+For more detailed information, refer to the `specs/004-cacao-processing-module/` directory.

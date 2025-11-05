@@ -24,10 +24,10 @@ export default async function ReceptionPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-foreground">
             Recepción de Frutos
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             Gestione las recepciones y pesadas de frutos
           </p>
         </div>

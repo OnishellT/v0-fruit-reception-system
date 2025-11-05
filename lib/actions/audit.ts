@@ -1,7 +1,9 @@
 "use server"
 
-import { createServiceRoleClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
+import { auditLogs } from "@/lib/db/schema"
 import { getSession } from "@/lib/actions/auth"
+import { eq, desc, gte, count, sql, and } from "drizzle-orm"
 
 export async function getAuditLogs(filters?: { user_id?: string; action?: string; limit?: number }) {
   const session = await getSession()
@@ -10,30 +12,31 @@ export async function getAuditLogs(filters?: { user_id?: string; action?: string
     return { error: "No autorizado" }
   }
 
-  const supabase = await createServiceRoleClient()
+  try {
+    let whereCondition = undefined
 
-  let query = supabase
-    .from("audit_logs")
-    .select("*")
-    .order("created_at", { ascending: false })
+    if (filters?.user_id && filters?.action) {
+      whereCondition = and(
+        eq(auditLogs.userId, filters.user_id),
+        eq(auditLogs.action, filters.action)
+      )
+    } else if (filters?.user_id) {
+      whereCondition = eq(auditLogs.userId, filters.user_id)
+    } else if (filters?.action) {
+      whereCondition = eq(auditLogs.action, filters.action)
+    }
 
-  if (filters?.user_id) {
-    query = query.eq("user_id", filters.user_id)
-  }
+    const logs = await db
+      .select()
+      .from(auditLogs)
+      .where(whereCondition)
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(filters?.limit || 100)
 
-  if (filters?.action) {
-    query = query.eq("action", filters.action)
-  }
-
-  query = query.limit(filters?.limit || 100)
-
-  const { data: logs, error } = await query
-
-  if (error) {
+    return { logs }
+  } catch (error) {
     return { error: "Error al obtener registros de auditoría" }
   }
-
-  return { logs }
 }
 
 export async function getAuditStats() {
@@ -43,31 +46,40 @@ export async function getAuditStats() {
     return { error: "No autorizado" }
   }
 
-  const supabase = await createServiceRoleClient()
+  try {
+    // Get total logs count
+    const totalResult = await db.select({ count: count() }).from(auditLogs)
+    const totalLogs = totalResult[0]?.count || 0
 
-  // Get total logs count
-  const { count: totalLogs } = await supabase.from("audit_logs").select("*", { count: "exact", head: true })
+    // Get logs from today
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-  // Get logs from today
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+    const todayResult = await db
+      .select({ count: count() })
+      .from(auditLogs)
+      .where(gte(auditLogs.createdAt, today))
 
-  const { count: todayLogs } = await supabase
-    .from("audit_logs")
-    .select("*", { count: "exact", head: true })
-    .gte("created_at", today.toISOString())
+    const todayLogs = todayResult[0]?.count || 0
 
-  // Get unique users who performed actions today
-  const { data: activeUsers } = await supabase
-    .from("audit_logs")
-    .select("user_id")
-    .gte("created_at", today.toISOString())
+    // Get unique users who performed actions today
+    const activeUsersResult = await db
+      .select({ userId: auditLogs.userId })
+      .from(auditLogs)
+      .where(gte(auditLogs.createdAt, today))
 
-  const uniqueUsers = new Set(activeUsers?.map((log) => log.user_id)).size
+    const uniqueUsers = new Set(activeUsersResult.map((log) => log.userId)).size
 
-  return {
-    totalLogs: totalLogs || 0,
-    todayLogs: todayLogs || 0,
-    activeUsers: uniqueUsers,
+    return {
+      totalLogs,
+      todayLogs,
+      activeUsers: uniqueUsers,
+    }
+  } catch (error) {
+    return {
+      totalLogs: 0,
+      todayLogs: 0,
+      activeUsers: 0,
+    }
   }
 }

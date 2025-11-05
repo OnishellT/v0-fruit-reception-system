@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/dev/Documents/v0-fruit-reception-system/logs/.d4b5465393fa8a73c29000299c7471d87d5481b0-audit.json",
+    "files": [
+        {
+            "date": 1762065289670,
+            "name": "/home/dev/Documents/v0-fruit-reception-system/logs/mcp-puppeteer-2025-11-02.log",
+            "hash": "17e740b1ecd4516212be724e3f20d10df341f6fdec3c069eaa9c4a95f947a591"
+        }
+    ],
+    "hashType": "sha256"
+}

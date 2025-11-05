@@ -1,0 +1,41 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "supabase": {
+      "type": "local",
+      "command": [
+        "npx",
+        "enhanced-postgres-mcp-server",
+        "postgres://postgres.cukuknkjwpmzcxyidcao:QJmxuwiID5SToBLR@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=disable"
+      ],
+      "enabled": true
+    },
+    "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "@playwright/mcp@latest",
+        "--headless",
+        "--browser",
+        "chromium"
+      ],
+      "enabled": true
+    },
+    "browsermcp": {
+      "type": "local",
+      "command": [
+        "npx",
+        "@browsermcp/mcp@latest"
+      ],
+      "enabled": true
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-556f7275-7464-45dc-a9a4-6abb9f5db120"
+      },
+      "enabled": true
+    }
+  }
+}

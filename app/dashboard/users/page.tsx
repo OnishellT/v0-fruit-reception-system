@@ -23,7 +23,7 @@ export default async function UsersPage() {
   if (result.error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-foreground">
           Gestión de Usuarios
         </h1>
         <Card>
@@ -39,10 +39,10 @@ export default async function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-foreground">
             Gestión de Usuarios
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             Administre los usuarios del sistema
           </p>
         </div>
