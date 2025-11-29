@@ -1,0 +1,13 @@
+{
+    "name": "cash-receipt",
+    "engine": "handlebars",
+    "recipe": "chrome-pdf",
+    "chrome": {
+        "format": "A4",
+        "printBackground": true,
+        "marginTop": "1cm",
+        "marginRight": "1cm",
+        "marginBottom": "1cm",
+        "marginLeft": "1cm"
+    }
+}

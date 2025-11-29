@@ -1,32 +1,37 @@
-# Prettier ignore patterns for cash-pos module
-# These patterns ensure cash-pos code follows the same formatting rules
-
-# Dependencies
-node_modules/
-
-# Build outputs
-.next/
-out/
-dist/
-build/
-
-# Generated files
-*.tsbuildinfo
-next-env.d.ts
-
-# Environment files
-.env*
-
-# Logs
-*.log
-
-# Coverage reports
-coverage/
-
-# Package manager files
+**/*.log
+**/.DS_Store
+*.
+.vscode/settings.json
+.history
+.yarn
+bazel-*
+bazel-bin
+bazel-out
+bazel-qwik
+bazel-testlogs
+dist
+dist-dev
+lib
+lib-types
+etc
+external
+node_modules
+temp
+tsc-out
+tsdoc-metadata.json
+target
+output
+rollup.config.js
+build
+.cache
+.vscode
+.rollup.cache
+tsconfig.tsbuildinfo
+vite.config.ts
+*.spec.tsx
+*.spec.ts
+.netlify
+pnpm-lock.yaml
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
-
-# Cash-pos specific ignores (if any)
-# Add any cash-pos specific files that should be ignored by Prettier
+server

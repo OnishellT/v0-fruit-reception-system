@@ -1,40 +1,65 @@
-# Fruit reception system
+# Qwik City App ⚡️
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+- [Qwik Docs](https://qwik.dev/)
+- [Discord](https://qwik.dev/chat)
+- [Qwik GitHub](https://github.com/QwikDev/qwik)
+- [@QwikDev](https://twitter.com/QwikDev)
+- [Vite](https://vitejs.dev/)
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/onishellts-projects/v0-fruit-reception-system)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/iAIjenWzQa7)
+---
 
-## Overview
+## Project Structure
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+This project is using Qwik with [QwikCity](https://qwik.dev/qwikcity/overview/). QwikCity is just an extra set of tools on top of Qwik to make it easier to build a full site, including directory-based routing, layouts, and more.
 
-## Deployment
+Inside your project, you'll see the following directory structure:
 
-Your project is live at:
+```
+├── public/
+│   └── ...
+└── src/
+    ├── components/
+    │   └── ...
+    └── routes/
+        └── ...
+```
 
-**[https://vercel.com/onishellts-projects/v0-fruit-reception-system](https://vercel.com/onishellts-projects/v0-fruit-reception-system)**
+- `src/routes`: Provides the directory-based routing, which can include a hierarchy of `layout.tsx` layout files, and an `index.tsx` file as the page. Additionally, `index.ts` files are endpoints. Please see the [routing docs](https://qwik.dev/qwikcity/routing/overview/) for more info.
 
-## Build your app
+- `src/components`: Recommended directory for components.
 
-Continue building your app on:
+- `public`: Any static assets, like images, can be placed in the public directory. Please see the [Vite public directory](https://vitejs.dev/guide/assets.html#the-public-directory) for more info.
 
-**[https://v0.app/chat/iAIjenWzQa7](https://v0.app/chat/iAIjenWzQa7)**
+## Add Integrations and deployment
 
-## How It Works
+Use the `bun qwik add` command to add additional integrations. Some examples of integrations includes: Cloudflare, Netlify or Express Server, and the [Static Site Generator (SSG)](https://qwik.dev/qwikcity/guides/static-site-generation/).
 
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+```shell
+bun qwik add # or `bun qwik add`
+```
 
-## Cacao Processing Module
+## Development
 
-This module introduces functionality for managing cacao processing batches and laboratory samples. Key features include:
+Development mode uses [Vite's development server](https://vitejs.dev/). The `dev` command will server-side render (SSR) the output during development.
 
-*   **Laboratory Sample Management**: Create and track laboratory samples from cacao receptions, record drying processes, and input final quality results.
-*   **Batch Creation and Processing**: Group multiple wet cacao receptions into single drying or fermentation batches, track their lifecycle, and monitor progress.
-*   **Batch Result Input and Distribution**: Input final dried weights for completed batches, with automatic proportional distribution across all included receptions.
+```shell
+npm start # or `bun start`
+```
 
-For more detailed information, refer to the `specs/004-cacao-processing-module/` directory.
+> Note: during dev mode, Vite may request a significant number of `.js` files. This does not represent a Qwik production build.
+
+## Preview
+
+The preview command will create a production build of the client modules, a production build of `src/entry.preview.tsx`, and run a local server. The preview server is only for convenience to preview a production build locally and should not be used as a production server.
+
+```shell
+bun preview # or `bun preview`
+```
+
+## Production
+
+The production build will generate client and server modules by running both client and server build commands. The build command will use Typescript to run a type check on the source code.
+
+```shell
+bun build # or `bun build`
+```

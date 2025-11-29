@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12pt;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 2em;
+      border-bottom: 2px solid #000;
+      padding-bottom: 1em;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24pt;
+    }
+    .header p {
+      margin: 0.5em 0 0 0;
+      color: #666;
+    }
+    .section {
+      margin: 1.5em 0;
+      page-break-inside: avoid;
+    }
+    .section h2 {
+      font-size: 14pt;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.25em;
+      margin-bottom: 0.75em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .info-table td {
+      padding: 0.5em;
+      border: none;
+    }
+    .info-table td:first-child {
+      color: #666;
+      width: 40%;
+    }
+    .info-table td:last-child {
+      font-weight: bold;
+    }
+    .totals-table {
+      margin-top: 1em;
+    }
+    .totals-table td {
+      padding: 0.75em 0.5em;
+      border-top: 1px solid #ddd;
+    }
+    .tot als-table .grand-total {
+      font-size: 16pt;
+      color: #16a34a;
+      font-weight: bold;
+      border-top: 2px solid #000;
+    }
+    .quality-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1em;
+      margin: 1em 0;
+    }
+    .metric-box {
+      border: 1px solid #ddd;
+      padding: 1em;
+      text-align: center;
+      border-radius: 4px;
+    }
+    .metric-label {
+      color: #666;
+      font-size: 10pt;
+    }
+    .metric-value {
+      font-size: 18pt;
+      font-weight: bold;
+      color: #000;
+      margin-top: 0.25em;
+    }
+    .footer {
+      margin-top: 3em;
+      padding-top: 1em;
+      border-top: 1px solid #ddd;
+      text-align: center;
+      font-size: 9pt;
+      color: #999;
+    }
+    .discount-table {
+      border: 1px solid #ddd;
+      margin: 1em 0;
+    }
+    .discount-table th,
+    .discount-table td {
+      border: 1px solid #ddd;
+      padding: 0.5em;
+      text-align: left;
+    }
+    .discount-table th {
+      background-color: #f4f4f4;
+      font-weight: bold;
+      font-size: 10pt;
+    }
+    .discount-table td {
+      text-align: right;
+      font-size: 10pt;
+    }
+    .discount-table td:first-child {
+      text-align: left;
+      text-transform: capitalize;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <h1>Recibo de Recepción</h1>
+    <p>Sistema de Recepción de Frutas - Efectivo</p>
+    <p><strong>Recibo #{{reception.id}}</strong></p>
+  </div>
+
+  <!-- General Information -->
+  <div class="section">
+    <h2>Información General</h2>
+    <table class="info-table">
+      <tr>
+        <td>Cliente:</td>
+        <td>{{reception.customerName}}</td>
+      </tr>
+      <tr>
+        <td>Cédula:</td>
+        <td>{{reception.customerNationalId}}</td>
+      </tr>
+      <tr>
+        <td>Tipo de Fruta:</td>
+        <td>{{reception.fruitTypeName}}</td>
+      </tr>
+      <tr>
+        <td>Fecha de Recepción:</td>
+        <td>{{formatDate reception.receptionDate}}</td>
+      </tr>
+      <tr>
+        <td>Envases:</td>
+        <td>{{reception.containersCount}}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Quality Metrics -->
+  {{#if reception.qualityMetrics}}
+  <div class="section">
+    <h2>Métricas de Calidad</h2>
+    <div class="quality-metrics">
+      {{#if reception.qualityMetrics.humedad}}
+      <div class="metric-box">
+        <div class="metric-label">Humedad</div>
+        <div class="metric-value">{{formatNumber reception.qualityMetrics.humedad}}%</div>
+      </div>
+      {{/if}}
+      {{#if reception.qualityMetrics.moho}}
+      <div class="metric-box">
+        <div class="metric-label">Moho</div>
+        <div class="metric-value">{{formatNumber reception.qualityMetrics.moho}}%</div>
+      </div>
+      {{/if}}
+      {{#if reception.qualityMetrics.violetas}}
+      <div class="metric-box">
+        <div class="metric-label">Violetas</div>
+        <div class="metric-value">{{formatNumber reception.qualityMetrics.violetas}}%</div>
+      </div>
+      {{/if}}
+    </div>
+  </div>
+  {{/if}}
+
+  <!-- Weight Details -->
+  <div class="section">
+    <h2>Detalles de Peso</h2>
+    <table class="info-table totals-table">
+      <tr>
+        <td>Peso Original:</td>
+        <td>{{formatWeight reception.totalWeightKgOriginal}}</td>
+      </tr>
+      <tr style="color: #dc2626;">
+        <td>Descuento en Peso:</td>
+        <td>-{{formatWeight reception.discountWeightKg}} ({{formatPercent reception.discountPercentTotal}})</td>
+      </tr>
+      <tr class="grand-total">
+        <td>Peso Final:</td>
+        <td>{{formatWeight reception.totalWeightKgFinal}}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Discount Breakdown -->
+  {{#if reception.discountBreakdown}}
+  {{#if reception.discountBreakdown.length}}
+  <div class="section">
+    <h2>Desglose de Descuentos</h2>
+    <table class="discount-table">
+      <thead>
+        <tr>
+          <th>Parámetro</th>
+          <th>Valor</th>
+          <th>Umbral</th>
+          <th>% Desc.</th>
+          <th>Peso Desc.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each reception.discountBreakdown}}
+        <tr>
+          <td>{{this.parametro}}</td>
+          <td>{{formatNumber this.valor}}%</td>
+          <td>{{formatNumber this.umbral}}%</td>
+          <td>{{formatPercent this.porcentajeDescuento}}</td>
+          <td>{{formatWeight this.pesoDescuento}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{/if}}
+  {{/if}}
+
+  <!-- Pricing -->
+  <div class="section">
+    <h2>Cálculo de Pago</h2>
+    <table class="info-table totals-table">
+      <tr>
+        <td>Precio por Kg:</td>
+        <td>{{formatCurrency reception.pricePerKgSnapshot}}</td>
+      </tr>
+      <tr>
+        <td>Peso Final:</td>
+        <td>{{formatWeight reception.totalWeightKgFinal}}</td>
+      </tr>
+      <tr>
+        <td>Monto Bruto:</td>
+        <td>{{formatCurrency reception.grossAmount}}</td>
+      </tr>
+      <tr class="grand-total">
+        <td>Monto Neto a Pagar:</td>
+        <td>{{formatCurrency reception.netAmount}}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>Generado: {{formatDate metadata.generatedAt}}</p>
+    <p>Usuario: {{metadata.generatedBy}}</p>
+  </div>
+</body>
+</html>
